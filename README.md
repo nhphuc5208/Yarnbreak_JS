@@ -1,5 +1,9 @@
 # YarnBreak — Real-time Yarn-Break Detection on NVIDIA Jetson
 
+[![tests](https://github.com/nhphuc5208/Yarnbreak_JS/actions/workflows/tests.yml/badge.svg)](https://github.com/nhphuc5208/Yarnbreak_JS/actions/workflows/tests.yml)
+![Python](https://img.shields.io/badge/python-3.10-blue)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 > **Tóm tắt (VI):** Hệ thống AI phát hiện đứt sợi theo thời gian thực cho máy hồ sợi trong nhà máy dệt, chạy 24/7 trên Jetson Orin Nano. Dùng YOLO (TensorRT FP16) trên nhiều camera công nghiệp Hikrobot GigE, điều khiển đèn tháp/còi qua relay Modbus RS485, có giao diện web giám sát/điều khiển đa ngôn ngữ (Việt / Hàn / Anh).
 
 An edge-AI system that watches yarn on industrial sizing machines and raises an alarm the moment a yarn breaks. It runs unattended **24/7 on a Jetson Orin Nano 8 GB** in a production textile factory.
@@ -57,7 +61,7 @@ Monitor and control the system from any phone or PC on the factory network: star
 - **Industrial I/O** — `RelayHub` is the single owner of the RS485 port (Waveshare 8DI/8DO, Modbus RTU). Each output channel is the OR of a set of "reasons", so several cameras and states (alarm, paused, watchdog) can drive the same tower light without overwriting each other. Physical red/green push buttons are read from digital inputs.
 - **Fault isolation** — a crash in a comb-camera pipeline never stops the main camera; threads restart themselves automatically.
 - **Operational safety** — thermal guard (pauses inference above a CPU/GPU temperature limit), camera-loss watchdog, tower-light watchdog, automatic shutdown after prolonged camera loss.
-- **Web control panel** (FastAPI + vanilla JS) — login with roles, live MJPEG stream, start/stop/pause, alarm history with CSV export, audit log, per-shift break counts, i18n (vi / ko / en). Runs as a Chromium kiosk on the machine's screen.
+- **Web control panel** (FastAPI + vanilla JS) — login with roles (PBKDF2-hashed passwords, no default credentials), live MJPEG stream, start/stop/pause, alarm history with CSV export, audit log, per-shift break counts, i18n (vi / ko / en). Runs as a Chromium kiosk on the machine's screen.
 - **Event recording** — pre-roll ring buffer in RAM, so every alarm gets a short video clip including the seconds *before* the break; snapshots and SQLite alarm log.
 - **Deployment** — `systemd` service for auto-start on boot.
 
@@ -80,9 +84,19 @@ Monitor and control the system from any phone or PC on the factory network: star
 ## Project structure
 
 ```
-├── main.py              # Main detection application (grabber → detector → alarm → dashboard)
+├── main.py              # Entry point: CLI + main loop wiring the components below
+├── yarnbreak/           # Core detection package
+│   ├── config.py        #   AppConfig dataclass, YAML + CLI loader
+│   ├── grabbers.py      #   Frame sources: video file, RTSP, Hikrobot MVS camera
+│   ├── detector.py      #   YOLO / TensorRT detector thread + smoothing
+│   ├── roi.py           #   ROI polygon geometry
+│   ├── alerts.py        #   Relay outputs, tower lights, push buttons
+│   ├── recording.py     #   Event log, video writer, pre-roll event clips
+│   ├── monitoring.py    #   FPS meter, Jetson thermal guard
+│   └── dashboard.py     #   OpenCV dashboard renderer
 ├── comb_pipeline.py     # Multi-camera "comb" pipeline (round-robin TensorRT detector)
-├── web_server.py        # FastAPI server: auth, REST API, MJPEG stream
+├── web_server.py        # FastAPI server: REST API, MJPEG stream
+├── auth.py              # PBKDF2 password hashing + account loading
 ├── inference_worker.py  # Runs the detector in the background for the web server
 ├── state_manager.py     # System state machine (STOPPED / RUNNING / PAUSED / ALARM)
 ├── alarm_logger.py      # SQLite alarm + audit log, CSV export
@@ -92,9 +106,10 @@ Monitor and control the system from any phone or PC on the factory network: star
 ├── mvs_sdk.py           # Hikrobot MVS SDK loader + camera lookup by serial
 ├── config.yaml          # All site configuration (cameras, thresholds, relay, ROI…)
 ├── static/, templates/  # Web UI (vanilla JS, i18n vi/ko/en)
-├── scripts/             # TensorRT export, benchmark, Jetson install guide
-├── tests/               # Hardware-free tests (fake clock / fake relay, i18n check)
+├── scripts/             # TensorRT export, benchmark, password hashing, Jetson install guide
+├── tests/               # pytest suite, hardware-free (fake clock / fake relay)
 ├── docs/images/         # Screenshots used in this README
+├── .github/workflows/   # CI: runs the tests on every push
 └── yarnbreak.service    # systemd unit for 24/7 operation
 ```
 
@@ -112,7 +127,8 @@ Hardware: NVIDIA Jetson Orin Nano 8 GB (JetPack 6), Hikrobot MV-CU120-10GC / MV-
 python3 -m venv venv && source venv/bin/activate
 # On Jetson install PyTorch from the NVIDIA JetPack wheel first (see scripts/install_jetson.sh)
 pip install -r requirements.txt
-cp .env.example .env            # set web login passwords
+cp .env.example .env
+python scripts/hash_password.py   # paste the hash into .env (ADMIN_PASSWORD_HASH=...)
 
 # Run on a video file with the OpenCV dashboard
 python3 main.py --source video --video ./videos/sample.mp4 --model ./models/your_model.pt --display
@@ -137,10 +153,14 @@ journalctl -u yarnbreak -f
 
 ## Tests
 
-These run on any PC — no camera, GPU or relay board required:
+The tests run on any PC (no camera, GPU or relay board needed) and run automatically on every push via GitHub Actions:
 
 ```bash
-python tests/test_comb_clip.py        # event-clip timing rules with a fake clock
-python tests/test_pause_yellow.py     # relay reason logic with a fake relay board
-node   tests/check_i18n.js .          # all 3 languages have the same translation keys
+pip install numpy opencv-python-headless pytest
+pytest                         # event clips (fake clock), relay logic (fake board), ROI geometry, auth
+node tests/check_i18n.js .     # all 3 languages have the same translation keys
 ```
+
+## License
+
+[MIT](LICENSE)
