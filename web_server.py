@@ -13,6 +13,7 @@ from fastapi.requests import Request
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
+from auth import load_accounts, verify_password
 from state_manager import state_manager
 from alarm_logger import alarm_logger
 from inference_worker import inference_worker
@@ -24,22 +25,10 @@ load_dotenv()
 HOST = os.getenv("WEB_HOST", "0.0.0.0")
 PORT = int(os.getenv("WEB_PORT", "8000"))
 
-# --- Accounts (username -> {password, role}) -------------------------------
-# Đọc từ .env. Mật khẩu lưu plaintext trong .env (LAN appliance, file local).
-ACCOUNTS = {
-    os.getenv("ADMIN_USERNAME", "admin"): {
-        "password": os.getenv("ADMIN_PASSWORD", "change-me-admin"),
-        "role": "admin",
-    },
-    os.getenv("USER1_USERNAME", "user1"): {
-        "password": os.getenv("USER1_PASSWORD", "change-me-user1"),
-        "role": "user",
-    },
-    os.getenv("USER2_USERNAME", "user2"): {
-        "password": os.getenv("USER2_PASSWORD", "change-me-user2"),
-        "role": "user",
-    },
-}
+# --- Accounts (username -> {password_hash, role}) --------------------------
+# Đọc từ .env dưới dạng hash PBKDF2 (xem auth.py). Không có mật khẩu mặc định:
+# tài khoản nào chưa cấu hình trong .env thì bị vô hiệu hoá.
+ACCOUNTS = load_accounts()
 
 # In-memory session store: session_token -> {"username", "role"}
 # Mất khi restart server; client sẽ nhận 401 và đăng nhập lại.
@@ -63,14 +52,18 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="YarnBreak Control System", version="2.0.0",
               lifespan=lifespan)
 
-# Enable CORS for local network testing
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS: the web UI is served from this same server, so no cross-origin access
+# is needed by default. Set CORS_ORIGINS="http://host1:port,http://host2" in
+# .env only if another front-end must call this API.
+CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
+if CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=CORS_ORIGINS,
+        allow_credentials=False,  # auth uses a Bearer header, not cookies
+        allow_methods=["GET", "POST"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
 
 # Mount static and snapshots
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -152,7 +145,7 @@ async def login(data: dict):
     password = data.get("password") or ""
 
     account = ACCOUNTS.get(username)
-    if not account or not secrets.compare_digest(account["password"], password):
+    if not account or not verify_password(password, account["password_hash"]):
         alarm_logger.log_audit(
             username or "(unknown)", "LOGIN", "FAILED", "Sai tên đăng nhập hoặc mật khẩu"
         )
@@ -234,7 +227,7 @@ async def stop_ai(data: dict = None, user: dict = Depends(get_current_user)):
     # DỪNG chương trình yêu cầu nhập lại mật khẩu của tài khoản đang đăng nhập.
     password = (data or {}).get("password") or ""
     account = ACCOUNTS.get(user["username"])
-    if not account or not secrets.compare_digest(account["password"], password):
+    if not account or not verify_password(password, account["password_hash"]):
         alarm_logger.log_audit(
             user["username"], "STOP", "DENIED", "Nhập sai mật khẩu khi dừng chương trình"
         )
