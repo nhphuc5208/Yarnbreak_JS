@@ -27,6 +27,19 @@ The model detects the broken yarn in real time, shows the confidence score and t
   </tr>
 </table>
 
+## Model performance
+
+YOLO segmentation model trained on **~2,000 labeled images** collected from the production line.
+
+| Output | Precision | Recall | mAP@50 | mAP@50-95 |
+|--------|:---------:|:------:|:------:|:---------:|
+| Box    | 0.957 | 0.824 | 0.841 | 0.606 |
+| Mask   | 0.945 | 0.813 | 0.824 | 0.350 |
+
+On the Jetson Orin Nano (TensorRT FP16, 960 px input) the live system runs at **~15 FPS with ~58 ms inference per frame** (see the dashboard telemetry below).
+
+High precision keeps false alarms rare, which matters on a factory floor where operators quickly learn to ignore a noisy alarm. Missed frames are covered by the alarm logic: it confirms a break over several consecutive frames instead of relying on a single detection.
+
 ## Web control panel
 
 Monitor and control the system from any phone or PC on the factory network: start / stop / pause, live telemetry (FPS, inference time, CPU/GPU temperature), detection history and a user audit log with CSV export. Shown here in Korean (the UI also supports Vietnamese and English).
@@ -38,7 +51,7 @@ Monitor and control the system from any phone or PC on the factory network: star
 ## Highlights
 
 - **Multi-camera inference** — one main "roller" camera (segmentation model) plus two "comb" cameras sharing a single TensorRT engine in a round-robin detector thread (TensorRT contexts are not thread-safe, so warm-up and inference stay on one thread).
-- **TensorRT FP16** export of YOLO models (`.pt → .onnx → .engine`) for ~2× faster inference on the Jetson GPU.
+- **TensorRT FP16** export of YOLO models (`.pt → .onnx → .engine`) for real-time inference on the Jetson GPU.
 - **Hardware ROI** on Hikrobot GigE cameras (MVS SDK) — the camera only transmits the region of interest, saving GigE bandwidth and GPU time.
 - **Robust alarm logic** — confidence averaging, EMA smoothing, debouncing, rising-confidence confirmation and ROI-based rules to keep false alarms low on a noisy factory floor.
 - **Industrial I/O** — `RelayHub` is the single owner of the RS485 port (Waveshare 8DI/8DO, Modbus RTU). Each output channel is the OR of a set of "reasons", so several cameras and states (alarm, paused, watchdog) can drive the same tower light without overwriting each other. Physical red/green push buttons are read from digital inputs.
