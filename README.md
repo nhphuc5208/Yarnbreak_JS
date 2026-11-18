@@ -4,6 +4,37 @@
 
 An edge-AI system that watches yarn on industrial sizing machines and raises an alarm the moment a yarn breaks. It runs unattended **24/7 on a Jetson Orin Nano 8 GB** in a production textile factory.
 
+## The problem
+
+A broken yarn wraps around the rollers of the sizing machine (red boxes). If the operator does not notice it quickly, it ruins the beam and stops production.
+
+<p align="center">
+  <img src="docs/images/yarn-break-on-machine.png" width="640" alt="Broken yarn wrapped around the rollers of a sizing machine">
+</p>
+
+## Detection results
+
+The model detects the broken yarn in real time, shows the confidence score and triggers the alarm.
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/detect-beam-1.png" width="300" alt="Detection on the beam camera"><br><sub>Beam camera — conf 0.76</sub></td>
+    <td align="center"><img src="docs/images/detect-beam-2.png" width="300" alt="Detection on the beam camera"><br><sub>Beam camera — conf 0.91</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/detect-beam-3.png" width="300" alt="Detection on the beam camera"><br><sub>Beam camera — conf 0.91</sub></td>
+    <td align="center"><img src="docs/images/detect-comb.jpg" width="300" alt="Detection on the comb camera"><br><sub>Comb camera — conf 0.73</sub></td>
+  </tr>
+</table>
+
+## Web control panel
+
+Monitor and control the system from any phone or PC on the factory network: start / stop / pause, live telemetry (FPS, inference time, CPU/GPU temperature), detection history and a user audit log with CSV export. Shown here in Korean (the UI also supports Vietnamese and English).
+
+<p align="center">
+  <img src="docs/images/web-dashboard.png" width="640" alt="Web control panel on a phone: dashboard and audit log">
+</p>
+
 ## Highlights
 
 - **Multi-camera inference** — one main "beam" camera (segmentation model) plus two "comb" cameras sharing a single TensorRT engine in a round-robin detector thread (TensorRT contexts are not thread-safe, so warm-up and inference stay on one thread).
@@ -50,6 +81,7 @@ An edge-AI system that watches yarn on industrial sizing machines and raises an 
 ├── static/, templates/  # Web UI (vanilla JS, i18n vi/ko/en)
 ├── scripts/             # TensorRT export, benchmark, Jetson install guide
 ├── tests/               # Hardware-free tests (fake clock / fake relay, i18n check)
+├── docs/images/         # Screenshots used in this README
 └── yarnbreak.service    # systemd unit for 24/7 operation
 ```
 
