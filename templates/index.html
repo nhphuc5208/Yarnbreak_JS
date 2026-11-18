@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YarnBreak Industrial Control</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Be Vietnam Pro: có BỘ GLYPH TIẾNG VIỆT đầy đủ (subset "vietnamese").
+         Font Outfit dùng trước đây chỉ có latin + latin-ext nên các chữ ụ, ợ, ờ...
+         phải lấy từ font hệ thống → lẫn 2 font trong cùng một từ, chữ không đều. -->
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css?v=20261030-2">
+</head>
+<body>
+    <div id="login-overlay" class="overlay">
+        <div class="login-card">
+            <div class="login-lang">
+                <select id="login-lang-select" class="lang-select" aria-label="Language">
+                    <option value="vi">Tiếng Việt</option>
+                    <option value="ko">한국어</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+            <img src="/static/logo.png" alt="Machines Management Dept" class="login-logo">
+            <h2 data-i18n="login.title">System Authentication</h2>
+            <p data-i18n="login.desc">Enter your username and password to access the Jetson YarnBreak Control Panel.</p>
+            <div class="input-group">
+                <input type="text" id="username-input" data-i18n-placeholder="login.userPlaceholder" placeholder="Username..." autocomplete="username">
+            </div>
+            <div class="input-group">
+                <input type="password" id="password-input" data-i18n-placeholder="login.passPlaceholder" placeholder="Password..." autocomplete="current-password">
+            </div>
+            <button id="login-btn" class="btn primary" data-i18n="login.unlock">Unlock Panel</button>
+            <div id="login-error" class="error-msg"></div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <header>
+            <div class="brand">
+                <img src="/static/logo.png" alt="Machines Management" class="header-logo">
+                <div class="status-indicator" id="system-status-dot"></div>
+                <h1>YarnBreak <span class="light" data-i18n="brand.sub">Jetson Console</span></h1>
+            </div>
+            <div class="header-right">
+                <select id="lang-select" class="lang-select" aria-label="Language">
+                    <option value="vi">Tiếng Việt</option>
+                    <option value="ko">한국어</option>
+                    <option value="en">English</option>
+                </select>
+                <div class="system-state-badge" id="system-state-label">STOPPED</div>
+            </div>
+        </header>
+
+        <!-- Bố cục 2 cột khi màn hình rộng (>=1000px), 1 cột khi hẹp.
+             col-main = thông tin vận hành, col-side = điều khiển & thông số.
+             Thứ tự khi 1 cột do CSS `order` quyết định (xem static/style.css). -->
+        <main class="layout">
+            <div class="col-main">
+                <!-- [multicam] Camera theo vị trí (trục + lược) — ĐẦU TRANG vì đây
+                     là thông tin vận hành quan trọng nhất. -->
+                <section class="card cameras-card" id="cameras-section" style="display: none;">
+                    <h2 data-i18n="cams.title">Cameras by Position</h2>
+                    <div class="cameras-grid" id="cameras-grid"></div>
+                </section>
+
+                <!-- Active Alarm Snapshot -->
+                <section class="card alarm-snapshot-card" id="active-alarm-section" style="display: none;">
+                    <h2 data-i18n="alarm.title">Active Alarm Info</h2>
+                    <div class="alarm-detail-grid">
+                        <div class="alarm-meta">
+                            <p><strong data-i18n="alarm.type">Defect Type:</strong> <span id="active-alarm-type">YarnBreak</span></p>
+                            <p><strong data-i18n="alarm.confidence">Confidence:</strong> <span id="active-alarm-conf">0.00</span></p>
+                            <p><strong data-i18n="alarm.detectedAt">Detected At:</strong> <span id="active-alarm-time">-</span></p>
+                        </div>
+                        <div class="alarm-img-container">
+                            <img id="active-alarm-img" src="" data-i18n-alt="alarm.noSnapshot" alt="No Alert Snapshot Available">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Alarm History Logs -->
+                <section class="card logs-card" id="alarm-logs-section">
+                    <div class="card-header-flex">
+                        <h2 data-i18n="logs.title">Recent Detections</h2>
+                        <button id="export-csv-btn" class="btn secondary sm" data-i18n="logs.export">Export CSV</button>
+                    </div>
+                    <div class="log-table-wrapper">
+                        <table class="log-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="logs.colTime">Time</th>
+                                    <th data-i18n="logs.colConfidence">Confidence</th>
+                                    <th data-i18n="logs.colStatus">Status</th>
+                                    <th data-i18n="logs.colImage">Image</th>
+                                </tr>
+                            </thead>
+                            <tbody id="alarm-logs-body">
+                                <tr>
+                                    <td colspan="4" class="no-data" data-i18n="logs.noData">No alarm logs recorded</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Access & Action History (CHỈ admin) -->
+                <section class="card logs-card collapsible collapsed" id="audit-section" style="display: none;">
+                    <div class="card-header-flex collapsible-header" id="audit-toggle" role="button" tabindex="0" aria-expanded="false" aria-controls="audit-body">
+                        <h2 data-i18n="audit.title">Access &amp; Action History</h2>
+                        <div class="card-header-actions">
+                            <span class="count-badge" id="audit-count">0</span>
+                            <button id="export-audit-btn" class="btn secondary sm" data-i18n="audit.export">Export CSV</button>
+                            <span class="collapse-chevron" aria-hidden="true">▾</span>
+                        </div>
+                    </div>
+                    <div class="collapsible-body" id="audit-body">
+                        <div class="log-table-wrapper audit-scroll">
+                            <table class="log-table">
+                                <thead>
+                                    <tr>
+                                        <th data-i18n="audit.colTime">Time</th>
+                                        <th data-i18n="audit.colUser">User</th>
+                                        <th data-i18n="audit.colAction">Action</th>
+                                        <th data-i18n="audit.colStatus">Status</th>
+                                        <th data-i18n="audit.colDetail">Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="audit-logs-body">
+                                    <tr>
+                                        <td colspan="5" class="no-data" data-i18n="audit.noData">No history records</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="col-side">
+                <!-- Control Panel -->
+                <section class="card controls-card">
+                    <h2 data-i18n="controls.title">Control Dashboard</h2>
+                    <div class="control-grid">
+                        <button id="start-btn" class="btn success" data-i18n="btn.start">START AI</button>
+                        <button id="stop-btn" class="btn danger" data-i18n="btn.stop">STOP SYSTEM</button>
+                        <button id="pause-btn" class="btn warning" data-i18n="btn.pause">PAUSE INFER</button>
+                        <button id="resume-btn" class="btn primary" style="display: none;" data-i18n="btn.resume">RESUME INFER</button>
+                        <button id="reset-alarm-btn" class="btn alarm-reset blinking" style="display: none;" data-i18n="btn.resetAlarm">RESET ALARM</button>
+                        <!-- Bỏ nút XEM CAMERA TRỰC TIẾP chung: mỗi thẻ camera ở
+                             "Camera theo vị trí" đã có nút xem trực tiếp riêng. -->
+                    </div>
+                </section>
+
+                <!-- Yarn-break count per shift -->
+                <section class="card shift-card">
+                    <h2 data-i18n="shift.title">Yarn-Break Count by Shift</h2>
+                    <div class="shift-grid">
+                        <div class="shift-panel shift-panel-now active" id="shift-now-item">
+                            <div class="shift-panel-head">
+                                <span class="shift-badge" data-i18n="shift.now">Now Shift</span>
+                                <span class="shift-live-pill" data-i18n="shift.running">RUNNING</span>
+                            </div>
+                            <div class="shift-date" id="shift-now-date">--/--/----</div>
+                            <div class="shift-hours" id="shift-now-hours">--:-- – --:--</div>
+                            <div class="shift-count-row">
+                                <span class="shift-count" id="shift-now-count">0</span>
+                                <span class="shift-count-unit" data-i18n="shift.times">times</span>
+                            </div>
+                        </div>
+                        <div class="shift-panel shift-panel-last" id="shift-last-item">
+                            <div class="shift-panel-head">
+                                <span class="shift-badge" data-i18n="shift.last">Last Shift</span>
+                            </div>
+                            <div class="shift-date" id="shift-last-date">--/--/----</div>
+                            <div class="shift-hours" id="shift-last-hours">--:-- – --:--</div>
+                            <div class="shift-count-row">
+                                <span class="shift-count" id="shift-last-count">0</span>
+                                <span class="shift-count-unit" data-i18n="shift.times">times</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Metrics Panel -->
+                <section class="card metrics-card">
+                    <h2 data-i18n="metrics.title">System Telemetry</h2>
+                    <div class="metrics-grid">
+                        <div class="metric-item">
+                            <span class="label" data-i18n="metrics.fps">FPS</span>
+                            <span class="value" id="fps-val">0.0</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="label" data-i18n="metrics.infer">Inference</span>
+                            <span class="value" id="infer-val">0 ms</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="label" data-i18n="metrics.camera">Camera</span>
+                            <span class="value disconnected" id="camera-val">OFFLINE</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="label" data-i18n="metrics.model">Model</span>
+                            <span class="value disconnected" id="model-val">UNLOADED</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="label" data-i18n="metrics.cpuTemp">CPU Temp</span>
+                            <span class="value" id="cpu-temp-val">-- &deg;C</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="label" data-i18n="metrics.gpuTemp">GPU Temp</span>
+                            <span class="value" id="gpu-temp-val">-- &deg;C</span>
+                        </div>
+                        <div class="metric-item full-width">
+                            <span class="label" data-i18n="metrics.uptime">Uptime</span>
+                            <span class="value" id="uptime-val">00:00:00</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Nguồn thiết bị: gập lại theo mặc định để không bấm nhầm -->
+                <section class="card power-card collapsible collapsed" id="power-section">
+                    <div class="card-header-flex collapsible-header" id="power-toggle" role="button" tabindex="0" aria-expanded="false" aria-controls="power-body">
+                        <h2 data-i18n="power.title">Device Power</h2>
+                        <div class="card-header-actions">
+                            <span class="collapse-chevron" aria-hidden="true">▾</span>
+                        </div>
+                    </div>
+                    <div class="collapsible-body" id="power-body">
+                        <div class="power-inner">
+                            <p class="power-desc" data-i18n="power.desc">These commands power off or reboot the Jetson. Use them only after the program has stopped.</p>
+                            <button id="reset-btn" class="btn power-reset" data-i18n="reset.btn">RESET JETSON</button>
+                            <button id="shutdown-btn" class="btn power-shutdown" data-i18n="shutdown.btn">SHUTDOWN JETSON</button>
+                            <p id="shutdown-hint" class="shutdown-hint" data-i18n="shutdown.hint">Phải nhấn STOP để dừng chương trình trước khi tắt máy.</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <footer>
+            <p data-i18n="footer.info">Jetson Orin Nano Production Console &bull; LAN Mode</p>
+            <button id="logout-btn" class="text-link" data-i18n="footer.lock">Lock Panel</button>
+            <div class="design-credit">
+                <img src="/static/logo.png" alt="Machines Management" class="footer-logo">
+                <span>Design by Machines Management</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Hộp thoại xác nhận trong trang (thay confirm()/prompt() của trình duyệt) -->
+    <div id="confirm-dialog" class="dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+        <div class="dialog-card">
+            <h3 class="dialog-title" id="dialog-title"></h3>
+            <p class="dialog-msg" id="dialog-msg"></p>
+            <div class="dialog-field" id="dialog-pass-field">
+                <label for="dialog-pass" id="dialog-pass-label">Password</label>
+                <div class="dialog-input-row">
+                    <input type="password" id="dialog-pass" autocomplete="current-password">
+                    <button type="button" class="dialog-reveal" id="dialog-pass-toggle">Show</button>
+                </div>
+            </div>
+            <div class="dialog-error" id="dialog-error"></div>
+            <div class="dialog-actions">
+                <button type="button" class="btn secondary" id="dialog-cancel">Cancel</button>
+                <button type="button" class="btn primary" id="dialog-ok">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Camera Modal Overlay -->
+    <div id="live-modal" class="image-modal-overlay">
+        <span class="close-modal" id="live-close">&times;</span>
+        <div class="live-modal-inner">
+            <h3 class="live-title" data-i18n="live.title">Live Camera — ROI Alignment</h3>
+            <div class="live-stage">
+                <img class="live-modal-img" id="live-img" alt="Live camera">
+                <div class="live-status" id="live-status" data-i18n="live.connecting">Connecting to camera...</div>
+            </div>
+            <p class="live-hint" data-i18n="live.hint">Adjust the camera so the yarn axis falls inside the green ROI outline.</p>
+        </div>
+    </div>
+
+    <!-- Image Modal Overlay -->
+    <div id="image-modal" class="image-modal-overlay">
+        <span class="close-modal">&times;</span>
+        <img class="image-modal-content" id="modal-img">
+    </div>
+
+    <script src="/static/i18n.js?v=20261030-2"></script>
+    <script src="/static/app.js?v=20261030-2"></script>
+</body>
+</html>

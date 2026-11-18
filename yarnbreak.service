@@ -1,0 +1,66 @@
+# ══════════════════════════════════════════════════════════════════════════════
+#  yarnbreak.service  —  systemd service for 24/7 factory deployment
+#
+#  Installation:
+#    1. Edit WorkingDirectory, ExecStart, and User below.
+#    2. sudo cp yarnbreak.service /etc/systemd/system/
+#    3. sudo systemctl daemon-reload
+#    4. sudo systemctl enable yarnbreak.service
+#    5. sudo systemctl start  yarnbreak.service
+#
+#  Commands:
+#    sudo systemctl status  yarnbreak
+#    sudo systemctl stop    yarnbreak
+#    sudo systemctl restart yarnbreak
+#    journalctl -u yarnbreak -f          # live logs
+#    journalctl -u yarnbreak --since "1 hour ago"
+# ══════════════════════════════════════════════════════════════════════════════
+
+[Unit]
+Description=YarnBreak AI Detection Service
+Documentation=file:///home/machines/Documents/yarnbreak_jetson/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# ── Identity ─────────────────────────────────────────────────────────────────
+User=machines
+Group=machines
+
+# ── Paths ────────────────────────────────────────────────────────────────────
+WorkingDirectory=/home/machines/Documents/yarnbreak_jetson
+
+# Run the YarnBreak Web Server (which internally runs the AI detection pipeline)
+ExecStartPre=/usr/bin/sleep 45
+ExecStart=/home/machines/Documents/yarnbreak_jetson/venv/bin/python3 web_server.py
+
+# ── Restart policy ───────────────────────────────────────────────────────────
+# Always restart on crash / exit — critical for 24/7 factory operation
+Restart=always
+RestartSec=5s
+StartLimitIntervalSec=60s
+StartLimitBurst=10
+
+# ── Resources ────────────────────────────────────────────────────────────────
+# Prevent runaway memory (adjust to actual requirements)
+MemoryMax=6G
+CPUWeight=80
+
+# ── Environment ──────────────────────────────────────────────────────────────
+Environment="PYTHONUNBUFFERED=1"
+Environment="DISPLAY="
+# MVS GigE SDK runtime (cần cho camera MV-CS050-10GC)
+Environment="MVCAM_COMMON_RUNENV=/opt/MVS/lib"
+Environment="LD_LIBRARY_PATH=/opt/MVS/lib/aarch64"
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=yarnbreak
+
+# ── Shutdown ─────────────────────────────────────────────────────────────────
+TimeoutStopSec=15s
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target

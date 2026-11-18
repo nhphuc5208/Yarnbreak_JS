@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Secrets
+.env
+
+# Large / device-specific artifacts
+models/*
+!models/.gitkeep
+*.pt
+*.onnx
+*.engine
+*.engine.bak
+videos/*
+!videos/.gitkeep
+*.mp4
+
+# Runtime outputs
+outputs/
+*.log
+*.db
+*.sqlite
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

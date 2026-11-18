@@ -1,0 +1,1175 @@
+:root {
+    /* Font giao diện. Be Vietnam Pro có đủ glyph tiếng Việt; các font dự phòng
+       (Segoe UI trên Windows, Roboto trên Android, Noto Sans trên Linux/Jetson)
+       cũng đủ tiếng Việt, nên khi tablet không tải được Google Fonts thì cả câu
+       vẫn dùng MỘT font thay vì lẫn nhiều font trong một từ. */
+    --font-ui: 'Be Vietnam Pro', 'Segoe UI', Roboto, 'Noto Sans', 'Helvetica Neue', Arial, sans-serif;
+
+    --bg-color: #f8fafc;
+    --card-bg: #ffffff;
+    --border-color: #e2e8f0;
+    --text-color: #0f172a;
+    --text-muted: #64748b;
+    
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    
+    --success: #10b981;
+    --success-hover: #059669;
+    
+    --danger: #ef4444;
+    --danger-hover: #dc2626;
+    
+    --warning: #f59e0b;
+    --warning-hover: #d97706;
+    
+    --alarm-color: #ef4444;
+    
+    /* Light Mode Extras */
+    --badge-bg: #e2e8f0;
+    --metric-bg: #f1f5f9;
+    --table-header-bg: #f8fafc;
+    --alarm-card-bg: #fef2f2;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-ui);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Authentication Overlay */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(248, 250, 252, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    transition: opacity 0.3s ease;
+}
+
+.login-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 30px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    text-align: center;
+}
+
+.login-logo {
+    display: block;
+    width: 140px;
+    height: auto;
+    margin: 0 auto 18px auto;
+}
+
+.login-card h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.login-card p {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 24px;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group input {
+    width: 100%;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 16px;
+    text-align: center;
+    transition: border-color 0.2s;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.error-msg {
+    color: var(--danger);
+    font-size: 14px;
+    margin-top: 15px;
+    min-height: 20px;
+}
+
+/* App Layout */
+.app-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 15px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0 20px 0;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 15px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-logo {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
+.brand h1 {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.brand h1 .light {
+    color: var(--text-muted);
+    font-weight: 300;
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #4b5563; /* off */
+    transition: background-color 0.3s;
+}
+
+.status-indicator.running {
+    background-color: var(--success);
+    box-shadow: 0 0 10px var(--success);
+}
+
+.status-indicator.paused {
+    background-color: var(--warning);
+    box-shadow: 0 0 10px var(--warning);
+}
+
+.status-indicator.alarm,
+.status-indicator.error {
+    background-color: var(--danger);
+    box-shadow: 0 0 10px var(--danger);
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Language selector */
+.lang-select {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.lang-select:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.login-lang {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+}
+
+.system-state-badge {
+    background-color: var(--badge-bg);
+    color: var(--text-color);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+/* Màu theo trạng thái lấy từ CSS (trước đây app.js gán inline style, trong đó
+   màu STOPPED còn sót lại của theme tối). */
+.system-state-badge.running { background-color: var(--success); color: #ffffff; }
+.system-state-badge.paused  { background-color: var(--warning); color: #ffffff; }
+.system-state-badge.alarm,
+.system-state-badge.error   { background-color: var(--danger);  color: #ffffff; }
+.system-state-badge.stopped { background-color: #475569;        color: #ffffff; }
+
+/* Bố cục: 1 cột trên điện thoại/tablet dọc, 2 cột khi màn hình rộng (>=1000px).
+   Cột chính giữ thông tin vận hành (camera, cảnh báo, log); cột phụ giữ điều
+   khiển, bộ đếm theo ca, thông số và nguồn thiết bị.
+   Khi hẹp, hai khối cột dùng display:contents nên các thẻ xếp lại thành 1 cột
+   theo `order` bên dưới — thứ tự nhìn thấy không phụ thuộc vào cột nào. */
+main.layout {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.col-main,
+.col-side {
+    display: contents;
+}
+
+#cameras-section      { order: 1; }
+#active-alarm-section { order: 2; }
+.controls-card        { order: 3; }
+.shift-card           { order: 4; }
+.metrics-card         { order: 5; }
+#alarm-logs-section   { order: 6; }
+#audit-section        { order: 7; }
+#power-section        { order: 8; }
+
+@media (min-width: 1000px) {
+    main.layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+        align-items: start;
+    }
+
+    .col-main,
+    .col-side {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        min-width: 0;
+    }
+}
+
+/* Card General */
+.card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 18px;
+}
+
+.card h2 {
+    font-size: 15px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    margin-bottom: 15px;
+}
+
+/* Controls Grid */
+.control-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.control-grid #reset-alarm-btn {
+    grid-column: span 2;
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    padding: 14px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #ffffff;
+    user-select: none;
+}
+
+.btn.primary { background-color: var(--primary); }
+.btn.primary:hover { background-color: var(--primary-hover); }
+
+.btn.success { background-color: var(--success); }
+.btn.success:hover { background-color: var(--success-hover); }
+
+.btn.danger { background-color: var(--danger); }
+.btn.danger:hover { background-color: var(--danger-hover); }
+
+.btn.warning { background-color: var(--warning); }
+.btn.warning:hover { background-color: var(--warning-hover); }
+
+.btn.secondary {
+    background-color: var(--badge-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+.btn.secondary:hover {
+    background-color: var(--border-color);
+}
+
+.btn.sm {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 6px;
+}
+
+.btn.alarm-reset {
+    background-color: #dc2626;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.btn:disabled,
+.btn.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    filter: grayscale(0.4);
+}
+
+/* Nguồn thiết bị: gập lại theo mặc định, nằm trong thẻ riêng có viền đỏ nhạt
+   để không bấm nhầm RESET/SHUTDOWN khi đang vận hành. */
+.power-card {
+    border-color: #fca5a5;
+}
+.power-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 12px;
+}
+.power-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+.btn.power-reset { background-color: #15803d; }
+.btn.power-reset:hover:not(:disabled) { background-color: #166534; }
+.btn.power-shutdown { background-color: #7f1d1d; }
+.btn.power-shutdown:hover:not(:disabled) { background-color: #601414; }
+
+.shutdown-hint {
+    font-size: 13px;
+    color: var(--warning-hover);
+}
+
+@keyframes blinking {
+    0% { background-color: #dc2626; box-shadow: 0 0 5px #dc2626; }
+    50% { background-color: #991b1b; box-shadow: 0 0 15px #dc2626; }
+    100% { background-color: #dc2626; box-shadow: 0 0 5px #dc2626; }
+}
+
+.blinking {
+    animation: blinking 1.2s infinite;
+}
+
+/* Metrics Dashboard */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.metric-item {
+    background-color: var(--metric-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.metric-item.full-width {
+    grid-column: span 2;
+}
+
+.metric-item .label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.metric-item .value {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.metric-item .value.connected {
+    color: var(--success);
+}
+
+.metric-item .value.disconnected {
+    color: var(--danger);
+}
+
+/* Camera đang kết nối lại (CONNECTING) — app.js gán class này nhưng CSS cũ
+   chưa định nghĩa nên chữ hiện màu mặc định. */
+.metric-item .value.warning {
+    color: var(--warning-hover);
+}
+
+/* Chữ phụ (ngày trong bảng log, "Không có"...) — app.js dùng class này. */
+.text-muted {
+    color: var(--text-muted);
+}
+
+/* Yarn-break count by shift */
+.shift-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.shift-panel {
+    position: relative;
+    background-color: var(--metric-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 16px;
+    overflow: hidden;
+    transition: border-color .2s, box-shadow .2s, background-color .2s;
+}
+
+/* Dải màu nhận diện ca ở cạnh trái panel */
+.shift-panel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background-color: var(--shift-accent);
+}
+
+.shift-panel-now  { --shift-accent: var(--primary); }
+.shift-panel-last { --shift-accent: #94a3b8; }
+
+.shift-panel.active {
+    border-color: var(--shift-accent);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.28);
+}
+
+.shift-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.shift-badge {
+    display: inline-block;
+    background-color: var(--shift-accent);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 3px 12px;
+    border-radius: 6px;
+}
+
+.shift-live-pill {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--success);
+    background-color: rgba(16, 185, 129, 0.14);
+    border-radius: 20px;
+    padding: 3px 9px;
+}
+
+.shift-live-pill::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: var(--success);
+    box-shadow: 0 0 6px var(--success);
+    animation: shiftPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes shiftPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.shift-panel.active .shift-live-pill {
+    display: inline-flex;
+}
+
+.shift-date {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-color);
+    line-height: 1.2;
+}
+
+.shift-hours {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.shift-count-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.shift-count {
+    font-size: 38px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--shift-accent);
+}
+
+.shift-count-unit {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+@media (max-width: 480px) {
+    .shift-grid { grid-template-columns: 1fr; }
+}
+
+/* Active Alarm snapshot */
+.alarm-snapshot-card {
+    border-color: var(--danger);
+    background-color: var(--alarm-card-bg);
+}
+
+.alarm-detail-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.alarm-meta {
+    font-size: 14px;
+}
+
+.alarm-meta p {
+    margin-bottom: 6px;
+}
+
+.alarm-img-container {
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    background-color: #000000;
+    aspect-ratio: 16/9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.alarm-img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    cursor: pointer;
+}
+
+/* Logs and History */
+.card-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.card-header-flex h2 {
+    margin-bottom: 0;
+}
+
+.card-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Collapsible card (e.g. Access & Action History) */
+.collapsible-header {
+    cursor: pointer;
+    user-select: none;
+}
+
+.collapse-chevron {
+    color: var(--text-muted);
+    font-size: 14px;
+    transition: transform 0.2s ease;
+}
+
+.collapsible.collapsed .collapse-chevron {
+    transform: rotate(-90deg);
+}
+
+.collapsible .collapsible-body {
+    overflow: hidden;
+    max-height: 400px;
+    transition: max-height 0.25s ease;
+}
+
+.collapsible.collapsed .collapsible-body {
+    max-height: 0;
+    margin: 0;
+}
+
+.count-badge {
+    background-color: var(--badge-bg);
+    color: var(--text-muted);
+    border-radius: 20px;
+    padding: 2px 9px;
+    font-size: 12px;
+    font-weight: 700;
+    min-width: 22px;
+    text-align: center;
+}
+
+.log-table-wrapper {
+    overflow-x: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+/* Action-history table is capped and scrolls internally instead of
+   stretching the whole page; header stays pinned while scrolling. */
+.audit-scroll {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.audit-scroll .log-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.log-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+}
+
+.log-table th, .log-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.log-table th {
+    background-color: var(--table-header-bg);
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.log-table tr:last-child td {
+    border-bottom: none;
+}
+
+.log-table td.no-data {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 20px;
+}
+
+.log-status-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.log-status-badge.pending {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+}
+
+.log-status-badge.acknowledged {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: var(--success);
+    border: 1px solid var(--success);
+}
+
+.thumbnail-btn {
+    background-color: var(--badge-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+}
+
+.thumbnail-btn:hover {
+    background-color: var(--primary);
+    color: #ffffff;
+}
+
+/* Image Modal */
+.image-modal-overlay {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    padding-top: 60px;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.9);
+}
+
+.image-modal-content {
+    margin: auto;
+    display: block;
+    width: 95%;
+    max-width: 800px;
+    height: auto;
+    max-height: 80vh;
+    object-fit: contain;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+/* Live camera modal */
+.live-modal-inner {
+    margin: auto;
+    width: 95%;
+    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.live-title {
+    color: #f1f1f1;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    text-align: center;
+}
+.live-stage {
+    position: relative;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 240px;
+    background-color: #000;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.live-modal-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 74vh;
+    object-fit: contain;
+}
+.live-status {
+    position: absolute;
+    color: #d7dbe3;
+    font-size: 15px;
+    text-align: center;
+    padding: 12px 18px;
+    background-color: rgba(0, 0, 0, 0.55);
+    border-radius: 8px;
+    pointer-events: none;
+}
+.live-hint {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-top: 12px;
+    text-align: center;
+}
+
+.close-modal {
+    position: absolute;
+    top: 15px;
+    right: 35px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    transition: 0.3s;
+    cursor: pointer;
+}
+
+.close-modal:hover,
+.close-modal:focus {
+    color: #bbb;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Footer styling */
+footer {
+    text-align: center;
+    padding: 25px 0 10px 0;
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.text-link {
+    background: none;
+    border: none;
+    color: var(--primary);
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: 12px;
+}
+
+/* Design credit (logo + text) ở chân trang */
+.design-credit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 18px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-color);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.footer-logo {
+    width: 120px;
+    height: auto;
+    object-fit: contain;
+}
+
+/* Desktop optimization (Landscape) */
+@media (min-width: 600px) {
+    .app-container {
+        padding: 30px 15px;
+    }
+    
+    .btn {
+        padding: 16px 20px;
+    }
+}
+
+/* Toast Notification System */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 350px;
+    width: calc(100% - 40px);
+}
+
+.toast {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--primary);
+    color: var(--text-color);
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: slideIn 0.3s ease-out;
+}
+
+.toast.error {
+    border-left-color: var(--danger);
+    background-color: var(--alarm-card-bg);
+}
+
+.toast.success {
+    border-left-color: var(--success);
+    background-color: #f0fdf4;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ── [multicam] Thẻ camera theo vị trí (trục + lược) ───────────────────────── */
+/* Đặt trước thẻ thông số hệ thống: đây là thông tin vận hành quan trọng nhất,
+   nên khung dày hơn và chữ trạng thái to để nhìn thấy từ xa. */
+.cameras-card {
+    border: 2px solid var(--border-color);
+}
+.cameras-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 16px;
+}
+/* Màu của thẻ camera lấy theo token của theme SÁNG. Bản cũ dùng màu
+   rgba(255,255,255,...) của theme tối nên trên nền trắng gần như mất viền và
+   chữ trong nút "Xem trực tiếp" không đọc được. */
+.cam-tile {
+    border: 1px solid var(--border-color);
+    border-left: 8px solid #94a3b8;
+    border-radius: 10px;
+    padding: 16px 18px;
+    background-color: var(--metric-bg);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.cam-tile.ok    { border-left-color: var(--success); }
+.cam-tile.off   { border-left-color: #94a3b8; }
+.cam-tile.alarm {
+    border-left-color: var(--danger);
+    border-color: var(--danger);
+    background-color: #fee2e2;
+    animation: camBlink 1s steps(2, start) infinite;
+}
+@keyframes camBlink { 50% { background-color: #fecaca; } }
+
+/* Cỡ chữ trong thẻ camera đổi từ rem sang px chẵn: 1.05rem = 16.8px và
+   0.82rem = 13.12px cho ra cỡ lẻ, chữ tiếng Việt nhiều dấu bị nhòe hơn. */
+.cam-tile-head { display: flex; align-items: center; }
+.cam-name {
+    font-weight: 700;
+    font-size: 17px;
+    line-height: 1.3;
+    letter-spacing: 0;
+    color: var(--text-color);
+}
+
+/* Dòng trạng thái lớn — thay cho badge nhỏ trước đây.
+   line-height 1.15 làm dấu của chữ hoa tiếng Việt (ĐỨT SỢI) sát mép trên nên
+   nới lên 1.25; letter-spacing bỏ bớt vì chữ đậm + giãn ngang đọc rối hơn. */
+.cam-state-big {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    line-height: 1.25;
+}
+.cam-state-big.ok    { color: var(--success-hover); }
+.cam-state-big.off   { color: var(--text-muted); }
+.cam-state-big.alarm { color: var(--danger-hover); }
+
+.cam-tile-meta {
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Nút xem trực tiếp của TỪNG camera — rộng hết thẻ cho dễ bấm trên tablet
+   ngoài xưởng (ngón tay, có thể đeo găng). */
+.cam-live-btn {
+    width: 100%;
+    margin-top: 2px;
+    padding: 10px 12px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    font-family: var(--font-ui);
+    color: var(--text-color);
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.cam-live-btn:hover {
+    background-color: var(--badge-bg);
+    border-color: #cbd5e1;
+}
+.cam-live-btn:active { transform: translateY(1px); }
+/* Đang báo đứt: nút chuyển đỏ để hút mắt người vận hành vào đúng camera đó */
+.cam-tile.alarm .cam-live-btn {
+    background-color: var(--danger);
+    border-color: var(--danger-hover);
+    color: #ffffff;
+}
+.cam-tile.alarm .cam-live-btn:hover {
+    background-color: var(--danger-hover);
+}
+
+@media (max-width: 600px) {
+    .cameras-grid { grid-template-columns: 1fr; }
+    .cam-state-big { font-size: 21px; }
+}
+
+/* ── Hộp thoại xác nhận trong trang ─────────────────────────────────────────
+   Thay confirm()/prompt() của trình duyệt: hiện đúng ngôn ngữ đang chọn, nút
+   to để bấm trên tablet, và mật khẩu khi DỪNG nhập ở <input type="password">
+   nên KHÔNG hiện rõ trên màn hình ngoài xưởng (prompt() thì hiện rõ). */
+.dialog-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 2600;
+    background-color: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(3px);
+    padding: 20px;
+    align-items: center;
+    justify-content: center;
+}
+
+.dialog-overlay.open {
+    display: flex;
+}
+
+.dialog-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 22px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.18);
+}
+
+.dialog-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.dialog-msg {
+    font-size: 14px;
+    white-space: pre-line;
+    margin-bottom: 14px;
+}
+
+.dialog-field {
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.dialog-field.show {
+    display: flex;
+}
+
+.dialog-field label {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.dialog-input-row {
+    display: flex;
+    gap: 8px;
+}
+
+.dialog-field input {
+    flex: 1;
+    min-width: 0;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 11px 14px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-family: var(--font-ui);
+}
+
+.dialog-field input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.dialog-reveal {
+    background-color: var(--badge-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 8px;
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font-ui);
+    cursor: pointer;
+}
+
+.dialog-reveal:hover {
+    background-color: var(--border-color);
+}
+
+.dialog-error {
+    color: var(--danger);
+    font-size: 13px;
+    min-height: 18px;
+    margin-bottom: 6px;
+}
+
+.dialog-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.dialog-actions .btn {
+    flex: 1;
+}
+
+/* Viền khi điều hướng bằng bàn phím */
+.btn:focus-visible,
+.thumbnail-btn:focus-visible,
+.cam-live-btn:focus-visible,
+.dialog-reveal:focus-visible,
+.collapsible-header:focus-visible,
+.text-link:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}

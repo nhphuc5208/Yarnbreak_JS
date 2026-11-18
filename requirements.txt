@@ -1,0 +1,53 @@
+# ══════════════════════════════════════════════════════════════════════════════
+#  requirements.txt — YarnBreak Jetson Orin Nano
+#  Ubuntu 22.04 / JetPack 6.x
+# ══════════════════════════════════════════════════════════════════════════════
+#
+#  ⚠  PyTorch / torchvision on Jetson MUST be installed via NVIDIA wheels,
+#     NOT from pip directly.  See scripts/install_jetson.sh for the exact steps.
+#     Attempting `pip install torch` on Jetson will install the wrong x86 build
+#     and will NOT use the GPU.
+#
+#  Install order on Jetson:
+#    1. sudo apt install python3-pip python3-venv
+#    2. pip install torch torchvision  ← USE NVIDIA WHEEL (see install guide)
+#    3. pip install -r requirements.txt
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ─── Core AI stack ───────────────────────────────────────────────────────────
+# torch       ← installed separately via NVIDIA JetPack wheel
+# torchvision ← installed separately via NVIDIA JetPack wheel
+
+ultralytics>=8.2.0        # YOLO v8/v11 model loading & inference
+
+# ─── Computer vision ─────────────────────────────────────────────────────────
+# On Jetson, prefer the system OpenCV built with GStreamer + CUDA:
+#   sudo apt install python3-opencv  (JetPack usually includes this)
+# OR build from source for full GStreamer support.
+#
+# If you only need basic functionality (no GStreamer hardware pipeline):
+opencv-python>=4.8.0
+
+# ─── Numerics ────────────────────────────────────────────────────────────────
+numpy>=1.24.0
+
+# ─── Config ──────────────────────────────────────────────────────────────────
+PyYAML>=6.0
+
+# ─── Optional: TensorRT export ───────────────────────────────────────────────
+# onnx and onnxruntime are used internally by ultralytics during .engine export
+# On Jetson they are typically pre-installed with JetPack; if not:
+# onnx>=1.14.0
+# onnxruntime-gpu  ← Jetson build, install from NVIDIA wheel
+
+# ─── Optional: GPIO / relay output ──────────────────────────────────────────
+# Uncomment if using GPIO pins for factory alert output on Jetson Orin:
+# Jetson.GPIO>=2.1.6
+
+# ─── Web Control Interface ──────────────────────────────────────────────────
+fastapi>=0.100.0
+uvicorn>=0.22.0
+python-dotenv>=1.0.0
+jinja2>=3.0.0
+python-multipart>=0.0.6
+

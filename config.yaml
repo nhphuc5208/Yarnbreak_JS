@@ -1,0 +1,493 @@
+# ══════════════════════════════════════════════════════════════════════════════
+#  YarnBreak Jetson – config.yaml
+#  CLI args always override these values.
+#  Copy this file and edit for each deployment site.
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ─── Source ───────────────────────────────────────────────────────────────────
+# "video"  → reads a local video file (great for offline testing)
+# "ipcam"  → reads RTSP stream (production factory mode)
+# "mvs"    → reads directly from a Hikrobot MVS camera (MV-CS050-10GC, GigE)
+source: "mvs"
+
+# Path to video file (used when source=video)
+video: "./videos/YB8.mp4"
+
+# Pace VideoFileGrabber theo source FPS (tránh video bị tua nhanh khi xem dashboard).
+#   true  → đọc đúng tốc độ video (phù hợp display mode)
+#   false → đọc nhanh hết mức; tốc độ thực do model quyết định (phù hợp headless)
+pace_video: true
+
+# Loop video về frame 0 khi hết file. Hữu ích để xem dashboard liên tục.
+loop_video: true
+
+# RTSP URL (used when source=ipcam)
+# rtsp: "rtsp://user:pass@<camera-ip>:554/stream1"
+rtsp: ""
+
+# RTSP codec hint for the GStreamer pipeline: "h264" | "h265"
+#   - tells the pipeline which depay/parse to use first.
+#   - the other codec is tried automatically as fallback.
+codec: "h264"
+
+# GStreamer rtspsrc latency in milliseconds.
+#   Lower = less delay, more jitter / dropped frames.
+#   Typical: 100–300 for low-latency cameras, 500+ for unreliable networks.
+latency_ms: 200
+
+# Seconds to wait before reconnecting after camera drop (ipcam / mvs)
+reconnect_delay: 3.0
+
+# ─── Hikrobot MVS camera (used when source=mvs) ───────────────────────────────
+# MVS Python SDK import dir (MvImport). Default fits this Jetson install.
+mvs_sdk_path: "/opt/MVS/Samples/aarch64/Python/MvImport"
+# Camera serial to bind to. "" = use the first camera found.
+# [multicam] Với hệ đa camera, serial là BẮT BUỘC (chọn đúng camera trục).
+mvs_serial: ""                              # TODO: serial camera trục
+# [multicam] Định danh camera trục (dùng cho state/DB/relay reason, web).
+camera_id: "cam_main"
+# [multicam] Kênh DO camera trục bật khi báo đứt: CH1 (đỏ) + CH2 (đèn báo/tắt xanh).
+alarm_outputs: [1, 2]
+# Fixed exposure in microseconds. 0 = leave the camera's own auto-exposure.
+#   Lower exposure = higher max fps + less motion blur on moving yarn.
+#   15000µs (15ms) reaches the sensor's full-res ceiling of ~23fps.
+#   A long exposure (e.g. 63ms default) caps the camera at ~16fps.
+mvs_exposure_us: 40000.0
+# Fixed gain in dB. <0 = leave the camera default.
+#   Short exposure darkens the image; raise gain to compensate.
+#   ~12dB restores the brightness lost going 63ms→15ms (more light = lower gain).
+mvs_gain: 10
+# Cap acquisition frame rate (fps). 0 = camera default (~23fps at full res).
+# Tip: match max_infer_fps to limit GPU duty cycle / heat on the Orin Nano.
+mvs_fps: 18.0
+# GigE stream packet size. 0 = auto-optimal jumbo frame (recommended).
+mvs_packet_size: 0
+
+
+# ─── [multicam] Camera "lược" (YarnBreakComb) ─────────────────────────────────
+# Thêm 1-2 camera lược dùng CHUNG model object-detection yarnbreakcomb.
+# Camera lược báo đứt → bật CH1 (đỏ) + CH3 (vàng). KHÔNG đụng CH2 (đèn báo cam cũ).
+# Mỗi camera lược nối qua adapter USB→GigE, một dải IP tĩnh riêng (tách subnet).
+comb:
+  enabled: true
+  model: "./models/yarnbreakcomb.engine"   # export từ yarnbreakcomb.pt, imgsz 1024, task detect
+  task: "detect"                           # object detection (KHÔNG segment như cam cũ)
+  target_class: "Yarn-Break-Comb"
+  imgsz: 1024
+  conf: 0.3
+  max_det: 20
+  max_infer_fps: 8.0                        # tổng cho cả 2 camera lược (nhường GPU cho cam cũ)
+  alarm_outputs: [1, 3]                     # ĐỎ + VÀNG
+  alert:
+    # LUẬT CHÍNH: 4 lần detect LIÊN TIẾP đều > 0.5 là BÁO (~1,1 giây).
+    high_window: 4                          # 4 lần liên tiếp
+    high_conf: 0.5                          #    đều > 0.5
+    # Luật "tăng dần" giữ lại cho đủ bộ nhưng thực tế KHÔNG còn tác dụng:
+    # chuỗi nào thỏa nó (5 lần, lần đầu > 0.6) thì luật trên đã báo từ lần thứ 4.
+    trend_window: 5
+    trend_min_conf: 0.6
+    off_miss: 5                             # tắt sau 5 lần không thấy
+  draw_conf_min: 0.6
+  # ── Ghi video mỗi lần camera LƯỢC báo đứt sợi ──────────────────────────────
+  # Lưu vào FOLDER RIÊNG (không trộn với clip camera trục ở ./outputs/events).
+  # Mỗi camera lược có folder con riêng: <event_clip_dir>/<cam_id>/
+  # Thời lượng 1 clip = pre_seconds (trước khi báo) + TỐI THIỂU min_seconds
+  # tính từ lúc báo (kể cả khi cảnh báo tắt sớm hoặc bấm TẮT CẢNH BÁO) + nếu
+  # còn báo thì ghi tiếp, hết báo ghi thêm post_seconds. max_seconds chặn trên.
+  event_clip: true
+  event_clip_dir: "./outputs/events_comb"   # folder RIÊNG của camera lược
+  event_buffer_scale: 0.5                   # pre-roll 12MP rất nặng RAM → thu nhỏ buffer
+  event_pre_seconds: 3.0                    # số giây giữ TRƯỚC khi báo
+  event_min_seconds: 30.0                   # TỐI THIỂU 30s cho mỗi lần báo đứt
+  event_post_seconds: 3.0                   # ghi thêm sau khi hết báo
+  event_max_seconds: 120.0                  # chặn trên cho 1 file
+  event_clip_fps: 0                         # 0 = tự đo nhịp frame thực tế
+  shift_count_avg_conf: 0.8
+  shift_count_debounce_s: 600
+  cameras:
+    - id: "comb_1"
+      name: "CU120"
+      enabled: true
+      source: "mvs"                         # mvs | video (test bằng video khi chưa có cam)
+      video: "./videos/YBC1.mp4"
+      mvs_serial: ""                        # TODO: serial camera MV-CU120-10GC
+      exposure_us: 17000
+      gain: 10
+      fps: 8
+      binning: 1
+      # [offset_x, offset_y, width, height] cắt NGAY TRÊN CẢM BIẾN.
+      # Cảm biến đầy đủ 4024x3036 (Width bước 4, Height/Offset bước 2).
+      # NGANG TỐI ĐA 4024 + DỌC 1/3 GIỮA 1012 (lệch trên 1012).
+      # ĐỪNG đổi lại thành [1004, 838, 2012, 838] — đó là khung HẸP cũ.
+      hw_roi: [0, 1012, 4024, 1012]
+      packet_size: 9000
+      detect_every: 2
+      roi_enabled: true
+      roi: [[0,0],[0,1],[1,1],[1,0]]
+    - id: "comb_2"
+      name: "CU060"
+      enabled: true                         # đã lắp 09/11/2026
+      source: "mvs"
+      mvs_serial: ""                        # TODO: serial camera MV-CU060-10GC (6MP 3072x2048, BayerRG8)
+      # Camera dùng IP TĨNH (ghi vào flash camera).
+      # (GevPersistentIPAddress, DHCP=Off, LLA=On dự phòng).
+      # => Cổng USB->GigE thứ 2 trên Jetson phải đặt cùng subnet với camera, MTU 9000.
+      # (comb_1 và comb_2 nằm ở hai subnet KHÁC nhau, đúng thiết kế.)
+      exposure_us: 17000                    # 17ms (như comb_1); xem live rồi tinh chỉnh
+      gain: 10                              # dB; tăng nếu ảnh tối, giảm nếu nhiễu hạt
+      fps: 8
+      binning: 1                            # CU060 KHÔNG có node Binning → phải để 1
+      # [offset_x, offset_y, width, height] cắt NGAY TRÊN CẢM BIẾN.
+      # Cảm biến đầy đủ 3072x2048 (Width bước 8, Height/Offset bước 2).
+      #
+      # Khung ĐÚNG TỈ LỆ camera lược 1: comb_1 = 4024x1012 → 3.976:1.
+      # CU060 lấy full ngang 3072 → dọc 3072/3.976 = 772 (bước 2) → 3.979:1,
+      # lệch trên (2048-772)/2 = 638. Hai camera lược nhìn cùng dạng khung nên
+      # model yarnbreakcomb thấy sợi ở cùng tỉ lệ như lúc train.
+      #
+      # ⚠ KHÔNG để camera nhìn cả khung hình — hw_roi phải ÔM ĐÚNG KHUNG LƯỢC.
+      # Lấy cả ảnh → sợi chỉ còn vài pixel, vừa bỏ sót vừa tốn băng thông GigE
+      # + GPU. Sau khi gắn camera lên máy, căn lại offset (giữ nguyên tỉ lệ):
+      #   python3 update_20261109/scripts/can_khung_luoc.py --cam comb_2 --xem
+      #   python3 ... --cam comb_2 --vung x1,y1,x2,y2 --ghi
+      hw_roi: [0, 638, 3072, 772]
+      packet_size: 9000                     # nMax camera = 9156 → cổng mạng phải MTU 9000
+      detect_every: 2
+      roi_enabled: true
+      roi: [[0,0],[0,1],[1,1],[1,0]]
+
+# [multicam] Ngưỡng nhiệt: vượt mức này → nhân đôi detect_every của camera lược
+# (nhường GPU cho cam cũ). Vượt thermal_pause_c (80°C, mục dưới) mới pause toàn bộ.
+thermal_throttle_c: 75.0
+
+
+# ─── Model ────────────────────────────────────────────────────────────────────
+# Supports .pt (PyTorch) and .engine (TensorRT, much faster on Jetson)
+# model: "./models/best225v3.pt"
+model: "./models/best1808.engine"         # TensorRT FP16 build ở imgsz 960 → cần imgsz: 960 (best1808, train 18/08); nóng hơn ~3°C
+# model: "./models/best1808_800.engine"   # TensorRT FP16 build ở imgsz 800 (best1808, train 18/08) → cần imgsz: 800; mát hơn, build 09/09
+
+# Inference image size — PHẢI KHỚP imgsz mà .engine được build ra.
+# Engine TensorRT ở đây là static shape (dynamic=false): lệch imgsz thì luồng detector
+# chết ngay khi chạy (AssertionError), hệ thống im lặng không phát hiện gì.
+#   800  → ~52ms/frame  (models/best225v3.engine)
+#   960  → ~64ms/frame, bắt sợi mảnh tốt hơn  (models/best225v3_960.engine)
+imgsz: 960
+
+# Detection confidence threshold (lower = more detections, more false positives)
+conf: 0.7
+
+
+
+
+# "auto" → GPU if available, else CPU
+# "0"    → force GPU 0
+# "cpu"  → force CPU
+device: "auto"
+
+# FP16 half-precision (CUDA only, ~1.5× faster on Jetson)
+half: true
+
+# Run inference every N frames:
+#   1 → every frame (maximum accuracy, slowest)
+#   2 → every 2nd frame (good trade-off for 25-30 fps cameras)
+#   3 → every 3rd frame (higher FPS, ~100 ms alert latency at 30fps)
+# 3 = giảm tải GPU ~33% so với 2 → CPU/GPU mát hơn.
+detect_every: 3
+
+# Cap detector loop rate (fps) để tránh GPU chạy 100% liên tục.
+# Ngăn overcurrent khi dùng nguồn biên (USB-C 5V/3A, barrel 5V/4A).
+#   0    → không giới hạn (mặc định; ipcam đã tự paced bởi camera)
+#   25.0 → giới hạn 25fps → inference ~12.5fps → GPU duty ~60%
+max_infer_fps: 18.0
+
+# Giới hạn số nhân CPU cho OpenCV + PyTorch.
+# Inference chạy trên GPU; CPU chỉ copy frame, letterbox preprocess và NMS.
+# Mặc định 2 thư viện này trải đều cả 6 nhân Orin → CPU nóng mà gần như không
+# nhanh hơn. Giới hạn pool giúp CPU mát hơn, chừa nhân cho grabber + main loop.
+#   0 → để mặc định thư viện (cả 6 nhân)
+#   4 → khuyến nghị cho Orin Nano
+cpu_threads: 2
+
+
+# ─── Thermal guard (bảo vệ quá nhiệt) ─────────────────────────────────────────
+# Theo dõi nhiệt CPU/GPU. Nếu MỘT trong hai chạm temp_limit_c → tạm dừng
+# grabber + detector (GPU/CPU hết tải nên SoC nguội đi) trong cooldown_s, rồi
+# tự động chạy lại. Vẫn theo dõi tiếp nên nếu còn nóng sẽ dừng lại lần nữa.
+# Lưu ý: trong lúc tạm dừng KHÔNG phát hiện được sự cố (không có alert mới);
+# trạng thái relay giữ nguyên như trước khi dừng.
+thermal_guard: true
+temp_limit_c: 80.0        # ngưỡng (°C) cho cả CPU và GPU
+cooldown_s: 1200.0        # thời gian nghỉ trước khi chạy lại (giây) = 20 phút
+thermal_check_s: 10.0      # chu kỳ đọc cảm biến nhiệt (giây)
+
+
+# ─── Region of interest — chỉ nhận diện trong vùng trục ───────────────────────
+# Khi khung camera có nhiều vật ngoài vùng trục gây nhiễu/báo giả, bật roi_enabled
+# và khai báo vùng trục. Detection nào có TÂM box nằm ngoài vùng này sẽ bị loại
+# TRƯỚC khi chọn box conf cao nhất → alert chỉ bám vật trong trục.
+#
+# Toạ độ là TỈ LỆ 0.0–1.0 theo khung hình (KHÔNG phải pixel), gốc góc trên-trái:
+#   x: 0.0 = mép trái,  1.0 = mép phải
+#   y: 0.0 = mép trên,  1.0 = mép dưới
+# Không phụ thuộc độ phân giải (khung hiện tại 2448×2048).
+#
+# roi nhận 2 dạng:
+#   • Đa giác (khuyến nghị cho trục chéo): danh sách đỉnh [[x,y], …] ≥3 đỉnh, theo
+#     thứ tự vòng (kim đồng hồ hoặc ngược đều được).
+#   • Chữ nhật thẳng: [x1, y1, x2, y2].
+roi_enabled: true
+# Tứ giác nghiêng ôm vùng trục. Thứ tự vòng: trên-trái → trên-phải → dưới → trái.
+#   Trên-trái  → (0.68, 0.00)   pixel ~ (1665, 0)
+#   Trên-phải  → (0.90, 0.00)   pixel ~ (2203, 0)
+#   Dưới       → (0.50, 1.00)   pixel ~ (1224, 2048)
+#   Trái       → (0.17, 0.75)   pixel ~ (416, 1536)
+roi:
+  - [0.7, 0.02]
+  - [0.82, 0.04]
+  - [0.47, 1]
+  - [0.21, 0.83]
+
+# ─── Vùng NHẠY phía trên ROI ──────────────────────────────────────────────────
+# Chia ROI làm 2 theo chiều dọc:
+#   • roi_top_fraction = 0.10 → 10% chiều cao ROI tính từ cạnh trên = VÙNG NHẠY
+#     (vẽ màu CAM). Báo sợi đứt NGAY khi có roi_top_frames frame LIÊN TIẾP với
+#     conf > roi_top_conf (không cần TB cao / tăng dần / xác nhận).
+#   • 90% còn lại phía dưới (vẽ màu XANH LÁ): GIỮ NGUYÊN logic cũ.
+# roi_top_fraction = 0 → tắt, cả ROI dùng logic cũ.
+roi_top_fraction: 0.10
+roi_top_conf: 0.4      # mỗi frame trong vùng trên phải có conf > mức này
+roi_top_frames: 4      # số frame LIÊN TIẾP (conf > roi_top_conf) để báo
+# Trượt RIÊNG góc dưới-PHẢI của vùng trên XUỐNG dọc cạnh phải ROI (điểm vẫn bám
+# cạnh gốc). Đơn vị px theo phương y, quy chiếu khung cao 2048. Dương = xuống.
+roi_top_right_drop_px: 100
+
+
+# ─── Lọc bề rộng box (THEO VÙNG) ──────────────────────────────────────────────
+# Chỉ coi là YarnBreak khi cạnh TRÊN của box (chiều rộng = x2−x1) > ngưỡng này,
+# đo trên KHUNG GỐC camera (trục ngang 2448px). Box hẹp hơn bị bỏ. 0 = tắt.
+# Ngưỡng khác nhau theo vùng ROI (phân theo TÂM box):
+#   • VÙNG DƯỚI (xanh lá): box phải rộng > min_box_top_width  (272px).
+#   • VÙNG TRÊN (cam, nhạy): box chỉ cần rộng > roi_top_min_box_width (100px).
+min_box_top_width: 272
+roi_top_min_box_width: 100
+
+# Loại box "đứng": nếu cạnh DỌC (cao = y2−y1) > cạnh NGANG (rộng = x2−x1) thì KHÔNG
+# báo. Sợi đứt là vệt ngang (rộng > cao); box cao hơn rộng thường là nhiễu dọc.
+#   true  → bật lọc (bỏ box cao hơn rộng)
+#   false → tắt
+reject_tall_box: true
+
+
+# ─── Đếm số lần báo sợi đứt theo CA (hiển thị trên web UI) ─────────────────────
+# Ca A = 06:00 → 18:00; Ca B = 18:00 → 06:00 hôm sau. Một lần báo chỉ được +1 khi:
+#   • TRUNG BÌNH conf của shift_count_frames (10) lần detect gần nhất > shift_count_avg_conf
+#   • VÀ cách lần ĐÃ TÍNH gần nhất ≥ shift_count_debounce_s giây (báo→tắt→báo lại
+#     trong 10 phút KHÔNG tính thêm).
+# Bộ đếm lưu trong DB (outputs/alarms.db, bảng shift_events) nên bền qua restart.
+shift_count_enabled: true
+shift_count_frames: 10       # số lần detect gần nhất lấy trung bình conf
+shift_count_avg_conf: 0.8    # TB conf phải > mức này mới tính
+shift_count_debounce_s: 600  # khoảng cách tối thiểu giữa 2 lần ĐÃ TÍNH (giây) = 10 phút
+
+
+# ─── Alert logic ──────────────────────────────────────────────────────────────
+# Đường 1: bật alarm khi TRUNG BÌNH conf của 6 lần detect LIÊN TIẾP gần nhất ≥ 0.82.
+# (Một lần miss xoá cửa sổ nên 6 mẫu phải liên tiếp.)
+alert_on_consec: 5         # số lần detect gần nhất lấy trung bình
+alert_on_avg_conf: 0.7    # ngưỡng trung bình để bật alarm
+# Clear alert after N consecutive frames WITHOUT YarnBreak detected
+alert_off_miss: 5
+
+# Auto-off khi alarm đã ON quá lâu: nếu alarm bật liên tục ≥ 40s mà trong 10 lần
+# detect gần nhất KHÔNG có conf nào > 0.90 thì tắt alarm (dọn báo dai dẳng ở conf
+# vừa mà alert_off_miss không bắt được vì detection vẫn liên tục). 0 = tắt luật này.
+alert_long_on_seconds: 40
+alert_long_off_window: 10
+alert_long_off_conf: 0.90
+
+# Đường 2 — conf thấp nhưng TĂNG DẦN ổn định: 5 frame liên tiếp đều > 0.5,
+# cuối cao hơn đầu ≥ min_gain, không mẫu nào tụt quá max_dip.
+alert_rise_enabled: true
+alert_rise_conf_min: 0.5
+alert_rise_window: 5
+alert_rise_min_gain: 0.10
+alert_rise_max_dip: 0.05
+# Cửa XÁC NHẬN cho đường 2: khi tăng dần đủ điều kiện thì KHÔNG báo ngay mà chờ
+# alert_rise_confirm_seconds; chỉ báo khi đã qua thời gian chờ VÀ trong lúc chờ có
+# ≥1 lần detect conf > alert_rise_confirm_conf. Mất target giữa chừng → huỷ chờ.
+alert_rise_confirm_seconds: 3.0
+alert_rise_confirm_conf: 0.80
+
+
+# ─── Smoothing ────────────────────────────────────────────────────────────────
+# EMA alpha for bounding-box position smoothing
+#   0.1 = very smooth (lags real position)
+#   0.6 = very responsive (jittery)
+ema_alpha: 0.35
+
+# Hold bounding box for N display frames after detection is lost
+hold_frames: 8
+
+
+# ─── Display ──────────────────────────────────────────────────────────────────
+# Chạy không có GUI (systemd service / production)
+headless: false
+display: true
+# Bật display để xem dashboard:
+# headless: false
+# display: true
+
+# Skip mask fill (only draw outline) → saves ~3-5 ms/frame on detection
+fast_draw: false
+
+# Draw segmentation mask overlay.
+# false = chỉ vẽ bounding box (bỏ tô vùng + viền segmentation), nhanh hơn khi detect.
+enable_mask: false
+
+# Mask transparency (0.0 = invisible, 1.0 = opaque)
+mask_alpha: 0.35
+
+# Hệ số phóng to chữ/bounding box overlay trên video.
+#   Cỡ chữ/box tự co giãn theo độ phân giải camera (5MP → to hơn 720p/1080p).
+#   1.0 = auto. Tăng (vd 1.3) nếu chữ vẫn nhỏ, giảm (<1.0) nếu quá to/che hình.
+overlay_scale: 1.0
+
+# Dashboard window resolution
+window_width: 1600
+window_height: 820
+
+# Use pre-allocated dashboard buffer (saves ~1-3 ms/frame)
+enable_dashboard_cache: true
+
+
+# ─── Output ───────────────────────────────────────────────────────────────────
+# Write annotated output to a video file
+save_video: false
+
+# Save a snapshot image each time an alert triggers (ảnh đã vẽ bounding box)
+save_snapshot: true
+
+# ─── Event clip (ghi 1 clip video cho MỖI lần alarm ON) ───────────────────────
+# Khác save_video (ghi liên tục cả phiên). event_clip ghi riêng từng sự kiện:
+#   pre-roll (vài giây TRƯỚC khi alarm bật) + khoảng alarm ON + post-roll.
+# Buffer pre-roll giữ trong RAM, được hạ độ phân giải (event_buffer_scale) để
+# tiết kiệm bộ nhớ trên Jetson.
+# Lưu ý: chỉ hoạt động ở chế độ có display/save_video (desktop), không áp dụng
+#        cho chế độ headless 24/7 (main loop không giữ frame).
+event_clip: true
+event_clip_dir: "./outputs/events"
+event_pre_seconds: 3.0      # số giây pre-roll (giữ trong RAM) = ghi trước 1s khi phát hiện sợi đứt
+event_post_seconds: 3.0     # số giây ghi tiếp sau khi alarm OFF
+event_buffer_scale: 0.75    # 0.75 = clip giữ 75% độ phân giải camera (nét hơn 0.5; 1.0 = giữ gốc)
+event_max_seconds: 60.0     # giới hạn thời lượng MỖI file; alarm dài hơn → cắt khúc event_..._partN.mp4. 0 = không giới hạn
+# Đảm bảo thời lượng tối thiểu: nếu 1 sự kiện có > event_min_hold_frames frame với
+# conf > event_min_hold_conf thì clip ghi ít nhất event_min_hold_seconds giây tính từ
+# frame conf-cao đầu tiên (dù alarm tắt sớm). 0 giây = tắt.
+event_min_hold_conf: 0.91
+event_min_hold_frames: 3    # kích hoạt khi số frame conf-cao > số này (>3 → từ frame thứ 4)
+event_min_hold_seconds: 60.0
+
+# Directories for outputs
+snapshot_dir: "./outputs/snapshots"
+video_out_dir: "./outputs/videos"
+log_dir:       "./outputs/logs"
+
+# Optional: explicit output video file path (overrides video_out_dir naming).
+# Leave empty to auto-name with timestamp under video_out_dir.
+output_path: ""
+
+# Write CSV event log (ALERT_ON/ALERT_OFF with timestamps)
+log_events: true
+
+
+# ─── Modbus RTU relay output (Waveshare USB-RS485 → relay 8DI/8DO) ────────────
+# Đóng relay CH1 khi phát hiện sợi đứt, mở relay khi hết alarm.
+# Yêu cầu:
+#   - User trong group `dialout` (kiểm tra: id | grep dialout) — để mở /dev/ttyACM*
+#   - pip install pyserial (đã cài trong venv)
+#   - Adapter Waveshare USB-TO-RS485 (B) hiện ra ở /dev/ttyACM0 (chip CH343)
+#
+# Đấu dây RS485: A(adapter) ↔ A(relay),  B(adapter) ↔ B(relay),  GND ↔ GND.
+# Board relay mặc định: slave address 1, baud 9600 8N1. CH1 = coil address 0.
+#
+# relay_active_close:
+#   true  → khi alert ON: ĐÓNG (close) relay CH; alert OFF: mở (open)
+#   false → đảo ngược (alert ON: mở relay) cho mạch normally-closed
+relay_enabled: true
+relay_port: "/dev/ttyACM0"
+relay_baud: 9600
+relay_slave: 1
+relay_channel: 1
+relay_active_close: true
+# Kênh DO của đèn VÀNG khi TẠM DỪNG (PAUSE). PAUSE dùng reason riêng
+# "status:paused" trên kênh này nên watchdog đèn tháp không tắt được đèn vàng
+# trong lúc đang tạm dừng. Đổi số nếu đèn vàng đấu vào DO khác; 0 = tắt.
+relay_pause_yellow_channel: 3
+
+# Cấu hình nút nhấn DI (Đỏ = Pause/Tạm dừng, Xanh = Resume/Tiếp tục)
+relay_di_enabled: true
+relay_di_red: 1           # Kênh DI cho nút đỏ (STOP/PAUSE) - mặc định DI1
+relay_di_green: 2         # Kênh DI cho nút xanh (START/RESUME) - mặc định DI2
+relay_di_poll_interval: 0.5  # Chu kỳ quét nút nhấn (giây)
+relay_di_control_mode: "pause_resume" # "pause_resume" hoặc "start_stop"
+relay_status_enabled: true  # Bật/tắt đèn báo trạng thái CH8 (Running: OFF, Paused: ON, Stopped: ON)
+relay_status_channel: 8     # Kênh DO (Relay) cấp nguồn cho đèn CH8
+relay_status2_enabled: false  # TẮT: CH7 không còn báo Paused, đã chuyển sang đi theo CH1 (relay_follow_*)
+relay_status2_channel: 7     # Kênh DO (Relay) cấp nguồn cho đèn CH7
+# CH7 đi theo CH1 có trễ: CH1 (sợi đứt) đóng liên tục đủ relay_follow_delay_s
+# giây thì CH7 bắt đầu NHÁY (đóng relay_follow_blink_on_s rồi mở
+# relay_follow_blink_off_s, lặp lại — mặc định 0,5 + 0,5 = chu kỳ 1 s);
+# CH1 MỞ thì CH7 MỞ ngay. Đặt cả hai blink = 0 để CH7 giữ đóng liên tục.
+relay_follow_enabled: true
+relay_follow_channel: 7          # Kênh DO đi theo (CH7)
+relay_follow_source_channel: 1   # Kênh nguồn để canh (CH1); 0 = lấy theo relay_channel
+relay_follow_delay_s: 7.0        # CH1 phải đóng liên tục bao nhiêu giây thì CH7 mới nháy
+relay_follow_blink_on_s: 0.5     # Mỗi nhịp: CH7 ĐÓNG bao lâu
+relay_follow_blink_off_s: 0.5    # Mỗi nhịp: CH7 MỞ bao lâu
+# Tự động tắt máy khi mất kết nối camera (Đồng bộ bảo vệ máy Jetson)
+camera_timeout_shutdown_enabled: true  # Bật/tắt tự động tắt máy khi mất kết nối camera
+camera_timeout_minutes: 30             # Thời gian mất kết nối camera tối đa (phút) trước khi tắt chương trình
+system_shutdown_delay_minutes: 5       # Thời gian chờ tắt nguồn Jetson sau khi tắt chương trình (phút)
+
+# Cấu hình Watchdog kiểm tra đứt kết nối / đơ luồng xử lý tháp đèn
+enable_tower_watchdog: true
+tower_watchdog_timeout_s: 30.0
+
+
+
+# ─── Target class ─────────────────────────────────────────────────────────────
+target_class:  "YarnBreak"
+display_label: "Yarn Break"
+
+
+# ─── Profiling ────────────────────────────────────────────────────────────────
+# Print FPS/latency to stdout every N frames
+show_profile:  true
+profile_every: 30
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  EXAMPLE: IP Camera production config
+#  Copy to config_ipcam.yaml and run:
+#    python3 main.py --config config_ipcam.yaml
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# source: "ipcam"
+# rtsp:   "rtsp://user:pass@<camera-ip>:554/h264Preview_01_main"
+# codec:  "h264"            # set to "h265" for H.265 streams
+# latency_ms: 200
+# reconnect_delay: 3.0
+# model:  "./models/best225v3.engine"
+# imgsz:  960
+# conf:   0.20
+# device: "0"
+# half:   true
+# detect_every: 2
+# headless: true          # run 24/7 without monitor
+# display: false
+# save_snapshot: true
+# save_video: false
+# log_events: true
+# alert_on_consec: 3
+# alert_off_miss: 5
