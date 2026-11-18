@@ -6,7 +6,7 @@ An edge-AI system that watches yarn on industrial sizing machines and raises an 
 
 ## The problem
 
-A broken yarn wraps around the rollers of the sizing machine (red boxes). If the operator does not notice it quickly, it ruins the beam and stops production.
+A broken yarn wraps around the rollers of the sizing machine (red boxes). If the operator does not notice it quickly, it damages the product and stops production.
 
 <p align="center">
   <img src="docs/images/yarn-break-on-machine.png" width="640" alt="Broken yarn wrapped around the rollers of a sizing machine">
@@ -18,12 +18,12 @@ The model detects the broken yarn in real time, shows the confidence score and t
 
 <table>
   <tr>
-    <td align="center"><img src="docs/images/detect-beam-1.png" width="300" alt="Detection on the beam camera"><br><sub>Beam camera — conf 0.76</sub></td>
-    <td align="center"><img src="docs/images/detect-beam-2.png" width="300" alt="Detection on the beam camera"><br><sub>Beam camera — conf 0.91</sub></td>
+    <td align="center"><img src="docs/images/detect-roller-1.png" width="300" alt="Detection on the roller camera"><br><sub>Roller camera — conf 0.76</sub></td>
+    <td align="center"><img src="docs/images/detect-roller-2.png" width="300" alt="Detection on the roller camera"><br><sub>Roller camera — conf 0.91</sub></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/images/detect-beam-3.png" width="300" alt="Detection on the beam camera"><br><sub>Beam camera — conf 0.91</sub></td>
-    <td align="center"><img src="docs/images/detect-comb.jpg" width="300" alt="Detection on the comb camera"><br><sub>Comb camera — conf 0.73</sub></td>
+    <td align="center"><img src="docs/images/detect-roller-3.png" width="300" alt="Detection on the roller camera"><br><sub>Roller camera — conf 0.91</sub></td>
+    <td align="center"><img src="docs/images/detect-roller-4.jpg" width="300" alt="Detection on the roller camera"><br><sub>Roller camera — conf 0.73</sub></td>
   </tr>
 </table>
 
@@ -37,7 +37,7 @@ Monitor and control the system from any phone or PC on the factory network: star
 
 ## Highlights
 
-- **Multi-camera inference** — one main "beam" camera (segmentation model) plus two "comb" cameras sharing a single TensorRT engine in a round-robin detector thread (TensorRT contexts are not thread-safe, so warm-up and inference stay on one thread).
+- **Multi-camera inference** — one main "roller" camera (segmentation model) plus two "comb" cameras sharing a single TensorRT engine in a round-robin detector thread (TensorRT contexts are not thread-safe, so warm-up and inference stay on one thread).
 - **TensorRT FP16** export of YOLO models (`.pt → .onnx → .engine`) for ~2× faster inference on the Jetson GPU.
 - **Hardware ROI** on Hikrobot GigE cameras (MVS SDK) — the camera only transmits the region of interest, saving GigE bandwidth and GPU time.
 - **Robust alarm logic** — confidence averaging, EMA smoothing, debouncing, rising-confidence confirmation and ROI-based rules to keep false alarms low on a noisy factory floor.
