@@ -306,7 +306,7 @@ def main(
     _comb_cfg = getattr(cfg, "comb", None) or {}
     if _comb_cfg.get("enabled"):
         try:
-            from comb_pipeline import CombPipeline
+            from yarnbreak.comb_pipeline import CombPipeline
             comb_pipeline = CombPipeline(
                 _comb_cfg,
                 sdk_path=cfg.mvs_sdk_path,

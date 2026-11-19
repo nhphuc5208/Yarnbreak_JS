@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 import pytest
 
-import comb_pipeline as cp
+import yarnbreak.comb_pipeline as cp
 
 FPS = 4.0
 DT = 1.0 / FPS

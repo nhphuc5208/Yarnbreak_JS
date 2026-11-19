@@ -356,7 +356,7 @@ class CombCameraStream:
 
     # ── Mở / cấu hình camera ────────────────────────────────────────────────
     def _open_device(self):
-        import mvs_sdk
+        from yarnbreak import mvs_sdk
         self.mvs = mvs_sdk.load_sdk(self._sdk_path)
         mvs_sdk.sdk_init()
         mvs = self.mvs
