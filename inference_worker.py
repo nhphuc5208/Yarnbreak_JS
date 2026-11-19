@@ -79,7 +79,7 @@ class InferenceWorker:
                 from state_manager import SystemState
                 if state_manager.state == SystemState.STOPPED:
                     if relay_obj is None:
-                        from modbus_relay import ModbusRelay
+                        from yarnbreak.modbus_relay import ModbusRelay
                         relay_obj = ModbusRelay(
                             port=cfg["port"],
                             baudrate=cfg["baud"],

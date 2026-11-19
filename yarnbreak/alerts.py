@@ -42,7 +42,7 @@ class AlertNotifier:
         """Open the Modbus RTU relay board over the USB-RS485 adapter and force
         the alert channel to its idle (released) state."""
         try:
-            from modbus_relay import ModbusRelay
+            from yarnbreak.modbus_relay import ModbusRelay
         except ImportError as exc:
             logger.error(f"Relay requested but modbus_relay/pyserial missing: {exc}")
             return
@@ -55,7 +55,7 @@ class AlertNotifier:
         # [multicam] Bọc transport bằng RelayHub: mỗi kênh DO = OR các reason, chỉ
         # ghi Modbus khi giá trị đổi, dùng chung một lock RS485 cho cả ghi DO và
         # đọc DI (nút bấm). Hub là chủ DUY NHẤT của cổng trong lúc pipeline chạy.
-        from relay_hub import RelayHub
+        from yarnbreak.relay_hub import RelayHub
         hub = RelayHub(relay, active_close=self.cfg.relay_active_close)
         self._relay = relay
         self._hub = hub
@@ -106,7 +106,7 @@ class AlertNotifier:
         test gán thẳng `notifier._relay = FakeRelay()` mà không qua _setup_relay)
         thì bọc lazily — nhờ vậy mọi lối gọi cũ vẫn chạy đúng."""
         if self._hub is None and self._relay is not None:
-            from relay_hub import RelayHub
+            from yarnbreak.relay_hub import RelayHub
             self._hub = RelayHub(self._relay, active_close=self.cfg.relay_active_close)
         return self._hub
 

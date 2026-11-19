@@ -6,7 +6,7 @@ Mirrors the write order used by main.py:
 """
 import pytest
 
-from relay_hub import FakeRelay, RelayHub
+from yarnbreak.relay_hub import FakeRelay, RelayHub
 
 RED_CH = 1      # stop-machine output
 GREEN_CH = 2    # ON -> green light OFF (wired NC)
