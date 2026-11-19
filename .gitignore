@@ -29,3 +29,8 @@ outputs/
 Thumbs.db
 .vscode/
 .idea/
+
+# Operator tool outputs (scripts/)
+dataset_comb/
+jetson_stats_*.csv
+config.yaml.bak
