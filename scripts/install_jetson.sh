@@ -171,8 +171,8 @@ EOF
 # ══════════════════════════════════════════════════════════════════════════════
 #  STEP 15 – Install as systemd service (24/7 factory mode)
 # ══════════════════════════════════════════════════════════════════════════════
-# Edit yarnbreak.service: set correct User, WorkingDirectory, RTSP URL, model path
-# sudo cp yarnbreak.service /etc/systemd/system/
+# Edit deploy/yarnbreak.service: set correct User, WorkingDirectory, RTSP URL, model path
+# sudo cp deploy/yarnbreak.service /etc/systemd/system/
 # sudo systemctl daemon-reload
 # sudo systemctl enable yarnbreak.service
 # sudo systemctl start  yarnbreak.service
