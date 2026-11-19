@@ -1,7 +1,7 @@
 """Password hashing and account loading for the web panel."""
 import pytest
 
-import auth
+from yarnbreak import auth
 
 
 def test_hash_round_trip():

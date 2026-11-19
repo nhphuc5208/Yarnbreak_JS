@@ -6,7 +6,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from auth import hash_password  # noqa: E402
+from yarnbreak.auth import hash_password  # noqa: E402
 
 
 def main() -> int:

@@ -13,7 +13,7 @@ from fastapi.requests import Request
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from auth import load_accounts, verify_password
+from yarnbreak.auth import load_accounts, verify_password
 from yarnbreak.state_manager import state_manager
 from yarnbreak.alarm_logger import alarm_logger
 from inference_worker import inference_worker
