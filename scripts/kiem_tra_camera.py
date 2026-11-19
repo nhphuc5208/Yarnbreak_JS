@@ -124,11 +124,11 @@ def main() -> int:
         if sang < 5:
             print(f"  >> Anh den nhung VAN co frame ve: gan nhu chac chan do PACKET SIZE "
                   f"({cam_cfg.get('packet_size')}) LON HON MTU cua cong mang.")
-            print(f"     GigE Vision gui payload bang UDP: goi lon hon MTU bi rot sach "
-                  f"ma KHONG bao loi -> frame rong.")
-            print(f"     Cach xu ly: bat jumbo frame (MTU 9000) cho cong mang "
-                  f"(scripts/mang_comb2.sh),")
-            print(f"     hoac chay lai script nay voi  --packet 0  de kiem chung.")
+            print("     GigE Vision gui payload bang UDP: goi lon hon MTU bi rot sach "
+                  "ma KHONG bao loi -> frame rong.")
+            print("     Cach xu ly: bat jumbo frame (MTU 9000) cho cong mang "
+                  "(scripts/mang_comb2.sh),")
+            print("     hoac chay lai script nay voi  --packet 0  de kiem chung.")
         if args.luu:
             cv2.imwrite(args.luu, frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
             print(f"  da luu anh           : {args.luu}")

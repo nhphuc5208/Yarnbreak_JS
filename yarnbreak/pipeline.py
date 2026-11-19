@@ -509,7 +509,6 @@ def main(
     cached_target:   Optional[Dict] = None
     last_target:     Optional[Dict] = None   # box gần nhất, giữ để vẽ suốt khi alarm ON
     alert_latched    = False
-    prev_alert       = False
     infer_ms         = 0.0
     ui_ms            = 0.0
 
@@ -548,7 +547,6 @@ def main(
 
                 frame_idx   += 1
                 _hd_fps_n   += 1
-                prev_alert    = alert_latched
                 alert_latched = res["alert"]
                 # Keep the last actual inference time; skip frames carry 0.
                 if res["infer_ms"] > 0:
@@ -607,7 +605,6 @@ def main(
             cur_conf = None            # conf của detect MỚI frame này (None nếu không có result mới)
             try:
                 res = result_q.get_nowait()
-                prev_alert    = alert_latched
                 alert_latched = res["alert"]
                 if res["infer_ms"] > 0:
                     infer_ms = res["infer_ms"]

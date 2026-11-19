@@ -310,7 +310,7 @@ class MVSCameraGrabber(FrameGrabber):
 
     def _open_camera(self, mvs):
         """Enumerate, pick the camera (by serial if configured), open and configure it."""
-        from ctypes import cast, POINTER, byref, c_bool
+        from ctypes import cast, POINTER
 
         dev_list = mvs.MV_CC_DEVICE_INFO_LIST()
         tlayer = mvs.MV_GIGE_DEVICE | mvs.MV_USB_DEVICE

@@ -17,7 +17,7 @@ from yarnbreak.auth import load_accounts, verify_password
 from yarnbreak.state_manager import state_manager
 from yarnbreak.alarm_logger import alarm_logger
 from yarnbreak.inference_worker import inference_worker
-from yarnbreak.live_view import live_stream, get_stream
+from yarnbreak.live_view import get_stream
 
 # Load config
 load_dotenv()

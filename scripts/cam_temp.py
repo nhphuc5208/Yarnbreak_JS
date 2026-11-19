@@ -7,7 +7,7 @@ import sys, os
 
 sys.path.append(os.environ.get("MVS_SDK_PATH",
                                 "/opt/MVS/Samples/aarch64/Python/MvImport"))
-from ctypes import cast, POINTER, byref
+from ctypes import cast, POINTER
 from MvCameraControl_class import *  # noqa
 import MvCameraControl_class as mvs
 
