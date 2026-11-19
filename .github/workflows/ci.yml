@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      # Hardware-free gate: no torch, TensorRT, camera SDK or relay board.
+      # Modules that need them are covered by the static import check instead.
+      - name: Install test dependencies
+        run: pip install numpy opencv-python-headless PyYAML pytest ruff
+
+      - name: Lint (ruff — syntax errors + pyflakes)
+        run: ruff check .
+
+      - name: Tests (pytest)
+        run: pytest -v
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: i18n keys used by HTML/JS exist in vi / ko / en
+        run: node tests/check_i18n.js .
