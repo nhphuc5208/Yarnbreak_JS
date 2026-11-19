@@ -9,7 +9,7 @@ from typing import Optional
 
 from yarnbreak.state_manager import state_manager
 from yarnbreak.alarm_logger import alarm_logger
-from main import main
+from yarnbreak.pipeline import main
 
 logger = logging.getLogger("YarnBreak.Worker")
 
