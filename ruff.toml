@@ -1,0 +1,12 @@
+# Lint gate for CI. Deliberately narrow: syntax errors (E9) and pyflakes (F:
+# undefined names, unused imports/variables). No formatter and no style rules,
+# so lint never forces reformatting of production code that runs on the Jetson.
+target-version = "py310"
+extend-exclude = ["venv", "models", "videos", "outputs"]
+
+[lint]
+select = ["E9", "F"]
+
+[lint.per-file-ignores]
+# Hikrobot SDK bindings are a star-import by design.
+"scripts/cam_temp.py" = ["F403", "F405"]
