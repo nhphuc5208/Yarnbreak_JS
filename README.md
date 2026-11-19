@@ -1,6 +1,6 @@
 # YarnBreak — Real-time Yarn-Break Detection on NVIDIA Jetson
 
-[![tests](https://github.com/nhphuc5208/Yarnbreak_JS/actions/workflows/tests.yml/badge.svg)](https://github.com/nhphuc5208/Yarnbreak_JS/actions/workflows/tests.yml)
+[![CI](https://github.com/nhphuc5208/Yarnbreak_JS/actions/workflows/ci.yml/badge.svg)](https://github.com/nhphuc5208/Yarnbreak_JS/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10-blue)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
@@ -30,6 +30,23 @@ The model detects the broken yarn in real time, shows the confidence score and t
     <td align="center"><img src="docs/images/detect-roller-4.jpg" width="300" alt="Detection on the roller camera"><br><sub>Roller camera — conf 0.73</sub></td>
   </tr>
 </table>
+
+## Comb cameras
+
+Two more Hikrobot cameras watch the **comb**, where a broken yarn shows up as a fluff ball caught in the comb teeth. Each camera crops the comb strip on the sensor itself (e.g. 4024×1012 out of 12 MP), and both share one YOLO11 detection engine.
+
+<p align="center">
+  <img src="docs/images/comb_camera_installation.jpg" width="640" alt="Two comb cameras mounted at both ends of the machine">
+</p>
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/comb_defect_examples.jpg" width="300" alt="Broken-yarn clusters at the comb"><br><sub>What the comb cameras look for</sub></td>
+    <td align="center"><img src="docs/images/comb_detection_2.jpg" width="420" alt="Comb detection"><br><sub>Comb camera — alarm raised (YB 0.85)</sub></td>
+  </tr>
+</table>
+
+Adding or removing a comb camera is a `config.yaml` change only (`comb.cameras[]`, each with `enabled`, `mvs_serial`, `hw_roi`, exposure/gain). Alarm thresholds live in `comb.alert`.
 
 ## Model performance
 
@@ -65,6 +82,22 @@ Monitor and control the system from any phone or PC on the factory network: star
 - **Event recording** — pre-roll ring buffer in RAM, so every alarm gets a short video clip including the seconds *before* the break; snapshots and SQLite alarm log.
 - **Deployment** — `systemd` service for auto-start on boot.
 
+## Relay contract
+
+`RelayHub` is the single owner of the RS485 board. Every output channel is the OR of named "reasons", so cameras, buttons, pause and watchdog never overwrite each other. This table is enforced by `tests/test_relay_truth_table.py`:
+
+| State | CH1 red (stop machine) | CH2 (green light off) | CH3 yellow |
+|---|:-:|:-:|:-:|
+| Running, no fault | 0 | 0 | 0 |
+| Roller (beam) camera alarm | 1 | 1 | 0 |
+| Comb camera alarm | 1 | 1 | 1 |
+| Both alarm | 1 | 1 | 1 |
+| Paused (red button / web) | 0 | 1 | 1 |
+| Roller camera heartbeat lost | 0 | 0 | 1 |
+| Stopped | 0 | 1 | 0 |
+
+CH7 follows CH1: after CH1 has been closed for 7 s it blinks (0.5 s / 0.5 s) until CH1 opens.
+
 ## Architecture
 
 ```
@@ -84,33 +117,39 @@ Monitor and control the system from any phone or PC on the factory network: star
 ## Project structure
 
 ```
-├── main.py              # Entry point: CLI + main loop wiring the components below
-├── yarnbreak/           # Core detection package
-│   ├── config.py        #   AppConfig dataclass, YAML + CLI loader
-│   ├── grabbers.py      #   Frame sources: video file, RTSP, Hikrobot MVS camera
-│   ├── detector.py      #   YOLO / TensorRT detector thread + smoothing
-│   ├── roi.py           #   ROI polygon geometry
-│   ├── alerts.py        #   Relay outputs, tower lights, push buttons
-│   ├── recording.py     #   Event log, video writer, pre-roll event clips
-│   ├── monitoring.py    #   FPS meter, Jetson thermal guard
-│   └── dashboard.py     #   OpenCV dashboard renderer
-├── comb_pipeline.py     # Multi-camera "comb" pipeline (round-robin TensorRT detector)
-├── web_server.py        # FastAPI server: REST API, MJPEG stream
-├── auth.py              # PBKDF2 password hashing + account loading
-├── inference_worker.py  # Runs the detector in the background for the web server
-├── state_manager.py     # System state machine (STOPPED / RUNNING / PAUSED / ALARM)
-├── alarm_logger.py      # SQLite alarm + audit log, CSV export
-├── live_view.py         # Shared latest-frame buffer for MJPEG streaming
-├── relay_hub.py         # Single owner of the RS485 relay board, reason-based outputs
-├── modbus_relay.py      # Modbus RTU driver for Waveshare 8DI/8DO
-├── mvs_sdk.py           # Hikrobot MVS SDK loader + camera lookup by serial
-├── config.yaml          # All site configuration (cameras, thresholds, relay, ROI…)
-├── static/, templates/  # Web UI (vanilla JS, i18n vi/ko/en)
-├── scripts/             # TensorRT export, benchmark, password hashing, Jetson install guide
-├── tests/               # pytest suite, hardware-free (fake clock / fake relay)
-├── docs/images/         # Screenshots used in this README
-├── .github/workflows/   # CI: runs the tests on every push
-└── yarnbreak.service    # systemd unit for 24/7 operation
+├── main.py               # CLI entry point (thin wrapper around yarnbreak.pipeline)
+├── web_server.py         # Web entry point: FastAPI REST API, MJPEG stream (run by systemd)
+├── config.yaml           # Single source of truth: cameras, thresholds, relay, ROI…
+├── yarnbreak/            # All runtime logic lives in this package
+│   ├── pipeline.py       #   Roller-camera main loop wiring the components below
+│   ├── config.py         #   AppConfig dataclass, YAML + CLI loader
+│   ├── grabbers.py       #   Frame sources: video file, RTSP, Hikrobot MVS camera
+│   ├── detector.py       #   YOLO / TensorRT detector thread + smoothing
+│   ├── roi.py            #   ROI polygon geometry
+│   ├── alerts.py         #   Relay outputs, tower lights, push buttons
+│   ├── recording.py      #   Event log, video writer, pre-roll event clips
+│   ├── monitoring.py     #   FPS meter, Jetson thermal guard
+│   ├── dashboard.py      #   OpenCV dashboard renderer
+│   ├── comb_pipeline.py  #   Comb cameras: round-robin TensorRT detector, alarm rules, clips
+│   ├── relay_hub.py      #   Single owner of the RS485 board, reason-based outputs
+│   ├── modbus_relay.py   #   Modbus RTU driver for Waveshare 8DI/8DO
+│   ├── mvs_sdk.py        #   Hikrobot MVS SDK loader + camera lookup by serial
+│   ├── inference_worker.py # Runs the pipeline in the background for the web server
+│   ├── state_manager.py  #   System state machine (STOPPED / RUNNING / PAUSED / ALARM)
+│   ├── alarm_logger.py   #   SQLite alarm + audit log, per-shift counts, CSV export
+│   ├── live_view.py      #   Per-camera latest-frame buffers for MJPEG
+│   └── auth.py           #   PBKDF2 password hashing + account loading
+├── static/, templates/   # Web UI (vanilla JS, i18n vi/ko/en)
+├── scripts/              # Operator & maintenance tools (names kept for on-site staff)
+│   ├── chay*.sh, open_web_ui.sh       # launchers (web, dashboard, 24/7 headless, kiosk)
+│   ├── can_khung_luoc.py              # fit the comb camera's on-sensor ROI
+│   ├── kiem_tra_camera.py, mang_comb2.sh  # camera check, static IP + MTU 9000
+│   ├── comb_capture.py                # capture raw comb images for labeling
+│   └── export_tensorrt.py, benchmark.py, hash_password.py, …
+├── tests/                # pytest, hardware-free (fake relay, simulated clock)
+├── deploy/               # systemd unit for 24/7 operation
+├── docs/                 # operator guide (VI), migration notes, images
+└── .github/workflows/    # CI: ruff + pytest + i18n check
 ```
 
 ## Tech stack
@@ -146,20 +185,24 @@ python3 scripts/export_tensorrt.py --model models/your_model.pt --imgsz 960 --ha
 Install as a 24/7 service:
 
 ```bash
-sudo cp yarnbreak.service /etc/systemd/system/
+sudo cp deploy/yarnbreak.service /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable --now yarnbreak
 journalctl -u yarnbreak -f
 ```
 
 ## Tests
 
-The tests run on any PC (no camera, GPU or relay board needed) and run automatically on every push via GitHub Actions:
+Everything runs on a normal PC — no camera, GPU or relay board — and on every push via GitHub Actions:
 
 ```bash
-pip install numpy opencv-python-headless pytest
-pytest                         # event clips (fake clock), relay logic (fake board), ROI geometry, auth
-node tests/check_i18n.js .     # all 3 languages have the same translation keys
+pip install numpy opencv-python-headless PyYAML pytest ruff
+ruff check .                   # syntax errors + pyflakes
+pytest                         # relay truth table, comb alarm rules, ROI geometry, auth,
+                               # event clips, i18n keys, package import check
+node tests/check_i18n.js .     # every key used by the HTML/JS has a vi/ko/en translation
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the quality gate, and [docs/LENH_CHAY.md](docs/LENH_CHAY.md) for the on-site operating guide (Vietnamese).
 
 ## License
 
