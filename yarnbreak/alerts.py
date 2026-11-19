@@ -88,7 +88,7 @@ class AlertNotifier:
 
         # Synchronize initial tower light state
         try:
-            from state_manager import state_manager
+            from yarnbreak.state_manager import state_manager
             initial_state = "STOPPED" if state_manager.state.value in ("STOPPED", "PAUSED") else "RUNNING"
             self.set_tower_lights(initial_state)
             # Khởi động: chắc chắn chưa có reason PAUSE treo trên kênh đèn vàng.

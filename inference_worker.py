@@ -7,8 +7,8 @@ import time
 import yaml
 from typing import Optional
 
-from state_manager import state_manager
-from alarm_logger import alarm_logger
+from yarnbreak.state_manager import state_manager
+from yarnbreak.alarm_logger import alarm_logger
 from main import main
 
 logger = logging.getLogger("YarnBreak.Worker")
@@ -76,7 +76,7 @@ class InferenceWorker:
                     continue
                 
                 # We only poll the DI from this thread if the pipeline is STOPPED
-                from state_manager import SystemState
+                from yarnbreak.state_manager import SystemState
                 if state_manager.state == SystemState.STOPPED:
                     if relay_obj is None:
                         from yarnbreak.modbus_relay import ModbusRelay

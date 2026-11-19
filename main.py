@@ -33,7 +33,7 @@ from typing import Dict, List, Optional
 import cv2
 import torch
 
-from live_view import live_stream
+from yarnbreak.live_view import live_stream
 from yarnbreak.alerts import AlertNotifier
 from yarnbreak.config import _load_config
 from yarnbreak.dashboard import DashboardRenderer
@@ -191,7 +191,7 @@ def main(
     # state_manager.pause_pipeline()/stop_pipeline()) điều khiển ĐÚNG detector —
     # nếu tạo Event local rời rạc thì pause_pipeline() sẽ không pause được detector
     # (sợi vẫn đứt → CH1 đóng lại). Xem memory di_pause_event_wiring.
-    from state_manager import state_manager as _sm
+    from yarnbreak.state_manager import state_manager as _sm
     stop_evt = stop_evt or _sm.stop_event
     thermal_pause_evt = threading.Event()      # ← thermal guard holds this
     user_pause_evt = user_pause_evt or _sm.user_pause_event
@@ -228,7 +228,7 @@ def main(
                         #   DO2 ON  → NC hở → đèn xanh TẮT (khi tạm dừng hoặc đang báo lỗi)
                         #   DO2 OFF → NC đóng → đèn xanh SÁNG (khi đang chạy bình thường)
                         # Giữ DO2 ON nếu vẫn còn báo lỗi để không bật lại đèn xanh khi resume.
-                        from state_manager import state_manager
+                        from yarnbreak.state_manager import state_manager
                         alarm_ch = getattr(cfg, "relay_alarm_light_channel", 2)
                         # [multicam] Giữ ĐÚNG công thức cũ CH2 = paused OR alarm_active,
                         # nhưng viết bằng 2 reason độc lập để camera lược không bị ảnh
@@ -345,7 +345,7 @@ def main(
                             if red_state:
                                 if not last_red:
                                     logger.warning("🔴 Modbus RED button pressed! Pausing pipeline...")
-                                    from state_manager import state_manager
+                                    from yarnbreak.state_manager import state_manager
                                     state_manager.pause_pipeline()
                                     # Chạm THẲNG event mà detector/grabber dùng để pause NGAY
                                     # (zero-lag, không đợi _sync_pause 50ms).
@@ -355,7 +355,7 @@ def main(
                                     # sẽ bật CH2/CH3 theo trạng thái paused → DO1 tắt, DO2 bật,
                                     # DO3 bật.
                                     notifier.release_stop_output("red button pause")
-                                    from alarm_logger import alarm_logger
+                                    from yarnbreak.alarm_logger import alarm_logger
                                     alarm_logger.log_audit("Physical Button", "PAUSE", "SUCCESS", "Tạm dừng nhận diện (Nút Đỏ)")
                                     red_press_start = time.perf_counter()
                                 elif cfg.relay_di_control_mode == "pause_resume":
@@ -363,14 +363,14 @@ def main(
                                     held_time = time.perf_counter() - red_press_start
                                     if held_time >= 5.0:
                                         logger.warning("🔴 Modbus RED button held for 5s! Stopping program completely...")
-                                        from alarm_logger import alarm_logger
+                                        from yarnbreak.alarm_logger import alarm_logger
                                         alarm_logger.log_audit("Physical Button", "STOP", "SUCCESS", "Tắt hoàn toàn chương trình (Nút Đỏ giữ 5s)")
                                         notifier.force_off("red button stop")  # tắt alarm ngay, không đợi finally
                                         stop_evt.set()
                                 else:
                                     # In start_stop mode, stop immediately
                                     logger.warning("🔴 Modbus RED button pressed! Stopping program...")
-                                    from alarm_logger import alarm_logger
+                                    from yarnbreak.alarm_logger import alarm_logger
                                     alarm_logger.log_audit("Physical Button", "STOP", "SUCCESS", "Tắt chương trình (Nút Đỏ)")
                                     notifier.force_off("red button stop")  # tắt alarm ngay, không đợi finally
                                     stop_evt.set()
@@ -382,13 +382,13 @@ def main(
                             if green_state and not last_green:
                                 logger.info("🟢 Modbus GREEN button pressed!")
                                 if cfg.relay_di_control_mode == "pause_resume":
-                                    from state_manager import state_manager
+                                    from yarnbreak.state_manager import state_manager
                                     state_manager.resume_pipeline()
                                     # Clear THẲNG event local để detector chạy lại (standalone
                                     # không nối state_manager.user_pause_event với local).
                                     user_pause_evt.clear()
                                     combined_pause_evt.clear()
-                                    from alarm_logger import alarm_logger
+                                    from yarnbreak.alarm_logger import alarm_logger
                                     alarm_logger.log_audit("Physical Button", "RESUME", "SUCCESS", "Tiếp tục nhận diện (Nút Xanh)")
                             last_green = green_state
                 except Exception as e:
@@ -408,11 +408,11 @@ def main(
             # Allow time for model loading and initial grabber connection
             time.sleep(3.0)
             
-            from state_manager import state_manager
+            from yarnbreak.state_manager import state_manager
             state_manager.last_heartbeat = time.monotonic()
             
             while not stop_evt.is_set():
-                from state_manager import SystemState
+                from yarnbreak.state_manager import SystemState
                 current_state = state_manager.state
                 
                 # We only check heartbeat timeout if program is in RUNNING or ALARM state
@@ -443,7 +443,7 @@ def main(
     if getattr(cfg, "camera_timeout_shutdown_enabled", False):
         def _camera_monitor_loop():
             import subprocess
-            from state_manager import state_manager
+            from yarnbreak.state_manager import state_manager
             
             timeout_seconds = getattr(cfg, "camera_timeout_minutes", 15.0) * 60.0
             shutdown_delay = getattr(cfg, "system_shutdown_delay_minutes", 5.0)
@@ -452,7 +452,7 @@ def main(
             last_connected_time = time.perf_counter()
             
             while not stop_evt.is_set():
-                from state_manager import SystemState
+                from yarnbreak.state_manager import SystemState
                 if state_manager.state not in (SystemState.RUNNING, SystemState.ALARM):
                     last_connected_time = time.perf_counter()
                 elif state_manager.camera_connected:
@@ -464,7 +464,7 @@ def main(
                         
                         # 1. Write audit log
                         try:
-                            from alarm_logger import alarm_logger
+                            from yarnbreak.alarm_logger import alarm_logger
                             alarm_logger.log_audit(
                                 "System",
                                 "SHUTDOWN_TIMEOUT",

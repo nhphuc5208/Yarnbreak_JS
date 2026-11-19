@@ -282,7 +282,7 @@ class YoloDetector:
             try:
                 item = self.in_q.get(timeout=0.5)
                 try:
-                    from state_manager import state_manager
+                    from yarnbreak.state_manager import state_manager
                     state_manager.last_heartbeat = time.monotonic()
                 except Exception:
                     pass

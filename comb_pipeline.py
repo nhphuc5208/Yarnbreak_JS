@@ -649,7 +649,7 @@ class CombCameraStream:
 
     def _report_status(self, **fields):
         try:
-            from state_manager import state_manager
+            from yarnbreak.state_manager import state_manager
             state_manager.set_camera_status(self.cam_id, name=self.name, **fields)
         except Exception:
             pass
@@ -861,7 +861,7 @@ class CombPipeline:
     def _check_reset_request(self):
         """Web bấm TẮT CẢNH BÁO → state_manager.bump_alarm_reset() tăng seq."""
         try:
-            from state_manager import state_manager
+            from yarnbreak.state_manager import state_manager
             seq = state_manager.alarm_reset_seq
         except Exception:
             return
@@ -923,7 +923,7 @@ class CombPipeline:
 
         # Live view: chỉ vẽ + encode khi CÓ người xem (tiết kiệm CPU/nhiệt)
         try:
-            from live_view import get_stream
+            from yarnbreak.live_view import get_stream
             ls = get_stream(cam_id)
             if ls.want_frame():
                 ls.publish(self._annotate(frame.copy(), targets, roi_poly, alert))
@@ -1004,7 +1004,7 @@ class CombPipeline:
 
     def _report(self, cam_id: str, **fields):
         try:
-            from state_manager import state_manager
+            from yarnbreak.state_manager import state_manager
             state_manager.set_camera_status(cam_id, **fields)
         except Exception:
             pass
@@ -1014,7 +1014,7 @@ class CombPipeline:
         try:
             import os
             from datetime import datetime
-            from alarm_logger import alarm_logger
+            from yarnbreak.alarm_logger import alarm_logger
 
             snap_dir = os.path.join("outputs", "snapshots", cam_id)
             os.makedirs(snap_dir, exist_ok=True)
@@ -1023,7 +1023,7 @@ class CombPipeline:
             img = self._annotate(frame.copy(), targets, None, True)
             cv2.imwrite(path, img, [cv2.IMWRITE_JPEG_QUALITY, 80])
 
-            from state_manager import state_manager
+            from yarnbreak.state_manager import state_manager
             alarm_logger.log_alarm(
                 defect_type="YarnBreakComb",
                 confidence=float(top_conf or 0.0),
