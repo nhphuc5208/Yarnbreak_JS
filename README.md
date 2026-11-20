@@ -20,6 +20,12 @@ A broken yarn wraps around the rollers of the sizing machine (red boxes). If the
 
 The model detects the broken yarn in real time, shows the confidence score and triggers the alarm.
 
+A Hikrobot GigE camera in an acrylic dust enclosure is mounted above the rollers and watches them continuously.
+
+<p align="center">
+  <img src="docs/images/roller_camera_installation.jpg" width="420" alt="Roller camera in an acrylic enclosure mounted above the sizing machine rollers">
+</p>
+
 <table>
   <tr>
     <td align="center"><img src="docs/images/detect-roller-1.png" width="300" alt="Detection on the roller camera"><br><sub>Roller camera — conf 0.76</sub></td>
