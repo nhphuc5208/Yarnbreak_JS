@@ -94,12 +94,6 @@ The upgraded console shows **all three cameras live at once**: the roller camera
   <img src="docs/images/web-console-desktop.jpg" width="760" alt="Upgraded YarnBreak Jetson Console: live status of the roller camera and two comb cameras, control dashboard and per-shift break count">
 </p>
 
-On a phone (Korean UI shown here): dashboard and user audit log.
-
-<p align="center">
-  <img src="docs/images/web-dashboard.png" width="640" alt="Web control panel on a phone: dashboard and audit log">
-</p>
-
 **Live view / ROI alignment** — the *Live view* button on each camera card opens the live stream with its ROI drawn on top, so a technician can aim the camera until the yarn falls inside the outline:
 
 <table>
