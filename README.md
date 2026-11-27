@@ -94,6 +94,12 @@ The upgraded console shows **all three cameras live at once**: the roller camera
   <img src="docs/images/web-console-desktop.jpg" width="760" alt="Upgraded YarnBreak Jetson Console: live status of the roller camera and two comb cameras, control dashboard and per-shift break count">
 </p>
 
+Further down the same page: system telemetry (FPS, inference time, camera / model status, CPU and GPU temperature, uptime) and the *Device power* panel to reboot or shut down the Jetson once the program has been stopped:
+
+<p align="center">
+  <img src="docs/images/web-console-telemetry-power.jpg" width="360" alt="System telemetry and device power panel: FPS, inference time, camera and model status, CPU/GPU temperature, uptime, reset and shutdown Jetson buttons">
+</p>
+
 **Live view / ROI alignment** — the *Live view* button on each camera card opens the live stream with its ROI drawn on top, so a technician can aim the camera until the yarn falls inside the outline:
 
 <table>
