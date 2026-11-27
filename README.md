@@ -54,7 +54,7 @@ Live detections from the comb cameras on the production line. The top row shows 
 <table>
   <tr>
     <td align="center"><img src="docs/images/comb_detection_8.jpg" width="420" alt="Comb camera detects a fluff ball while the operator clears it"><br><sub>Broken yarn not caught in time snags on the comb and grows into a fluff ball like this — YB 0.90</sub></td>
-    <td align="center"><img src="docs/images/comb_detection_9.jpg" width="420" alt="Comb camera detects a fluff ball while the operator clears it"><br><sub>Same cluster, operator clearing — YB 0.74</sub></td>
+    <td align="center"><img src="docs/images/comb_detection_9.jpg" width="420" alt="Comb camera detects a fluff ball while the operator clears it"><br><sub>A broken yarn missed earlier has tangled on the comb and built up into a fluff ball — YB 0.74</sub></td>
   </tr>
   <tr>
     <td align="center"><img src="docs/images/comb_detection_4.jpg" width="420" alt="Comb detection of a small cluster"><br><sub>Small cluster — YB 0.80</sub></td>
