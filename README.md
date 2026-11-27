@@ -80,7 +80,7 @@ YOLO segmentation model trained on **~2,000 labeled images** collected from the 
 | Box    | 0.957 | 0.824 | 0.841 | 0.606 |
 | Mask   | 0.945 | 0.813 | 0.824 | 0.350 |
 
-On the Jetson Orin Nano (TensorRT FP16, 960 px input) the live system runs at **~15 FPS with ~58 ms inference per frame** (see the dashboard telemetry below).
+On the Jetson Orin Nano (TensorRT FP16, 960 px input) the live system runs at **~18–20 FPS with ~60 ms inference per frame** on the roller camera (see the console telemetry below).
 
 High precision keeps false alarms rare, which matters on a factory floor where operators quickly learn to ignore a noisy alarm. Missed frames are covered by the alarm logic: it confirms a break over several consecutive frames instead of relying on a single detection.
 
