@@ -52,6 +52,26 @@ Two more Hikrobot cameras watch the **comb**, where a broken yarn shows up as a 
   </tr>
 </table>
 
+Live detections from the comb cameras on the production line. The top row shows real fluff balls being caught while an operator clears the comb; the rest are small clusters picked up early, before they grow.
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/comb_detection_8.jpg" width="420" alt="Comb camera detects a fluff ball while the operator clears it"><br><sub>Fluff ball at the comb — YB 0.90</sub></td>
+    <td align="center"><img src="docs/images/comb_detection_9.jpg" width="420" alt="Comb camera detects a fluff ball while the operator clears it"><br><sub>Same cluster, operator clearing — YB 0.74</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/comb_detection_4.jpg" width="420" alt="Comb detection of a small cluster"><br><sub>Small cluster — YB 0.80</sub></td>
+    <td align="center"><img src="docs/images/comb_detection_5.jpg" width="420" alt="Comb detection of a small cluster"><br><sub>Small cluster — YB 0.86</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/comb_detection_6.jpg" width="420" alt="Comb detection from the opposite-end camera"><br><sub>Opposite-end camera — YB 0.77</sub></td>
+    <td align="center"><img src="docs/images/comb_detection_7.jpg" width="420" alt="Comb detection from the opposite-end camera"><br><sub>Opposite-end camera — YB 0.77</sub></td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2"><img src="docs/images/comb_detection_10.jpg" width="640" alt="Comb detection of a very small cluster"><br><sub>Very small cluster caught early — YB 0.71</sub></td>
+  </tr>
+</table>
+
 Adding or removing a comb camera is a `config.yaml` change only (`comb.cameras[]`, each with `enabled`, `mvs_serial`, `hw_roi`, exposure/gain). Alarm thresholds live in `comb.alert`.
 
 ## Model performance
@@ -74,6 +94,24 @@ Monitor and control the system from any phone or PC on the factory network: star
 <p align="center">
   <img src="docs/images/web-dashboard.png" width="640" alt="Web control panel on a phone: dashboard and audit log">
 </p>
+
+On a desktop browser (English UI), each camera has its own status card with FPS and inference time, next to the controls and the yarn-break count for the current and previous shift:
+
+<p align="center">
+  <img src="docs/images/web-console-desktop.jpg" width="760" alt="YarnBreak Jetson Console on desktop: camera cards, control dashboard and per-shift break count">
+</p>
+
+**Live view / ROI alignment** — the *Live view* button on each camera card opens the live stream with its ROI drawn on top, so a technician can aim the camera until the yarn falls inside the outline:
+
+<table>
+  <tr>
+    <td align="center" colspan="2"><img src="docs/images/roi-alignment-roller.jpg" width="640" alt="ROI alignment on the roller camera"><br><sub>Roller camera — green ROI along the yarn axis</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/roi-alignment-comb-1.jpg" width="420" alt="ROI alignment on a comb camera"><br><sub>Comb camera 1</sub></td>
+    <td align="center"><img src="docs/images/roi-alignment-comb-2.jpg" width="420" alt="ROI alignment on a comb camera"><br><sub>Comb camera 2</sub></td>
+  </tr>
+</table>
 
 ## Highlights
 
