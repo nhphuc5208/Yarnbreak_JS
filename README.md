@@ -89,16 +89,18 @@ High precision keeps false alarms rare, which matters on a factory floor where o
 
 ## Web control panel
 
-Monitor and control the system from any phone or PC on the factory network: start / stop / pause, live telemetry (FPS, inference time, CPU/GPU temperature), detection history and a user audit log with CSV export. Shown here in Korean (the UI also supports Vietnamese and English).
+Monitor and control the system from any phone or PC on the factory network: start / stop / pause, live telemetry (FPS, inference time, CPU/GPU temperature), detection history and a user audit log with CSV export. The UI supports Vietnamese, Korean and English.
+
+The upgraded console shows **all three cameras live at once**: the roller camera (*Axis*) and the two comb cameras (*CU120*, *CU060*), each in its own card with status, FPS and inference time and a *Live view* button, next to the system controls and the yarn-break count for the current and previous shift:
+
+<p align="center">
+  <img src="docs/images/web-console-desktop.jpg" width="760" alt="Upgraded YarnBreak Jetson Console: live status of the roller camera and two comb cameras, control dashboard and per-shift break count">
+</p>
+
+On a phone (Korean UI shown here): dashboard and user audit log.
 
 <p align="center">
   <img src="docs/images/web-dashboard.png" width="640" alt="Web control panel on a phone: dashboard and audit log">
-</p>
-
-On a desktop browser (English UI), each camera has its own status card with FPS and inference time, next to the controls and the yarn-break count for the current and previous shift:
-
-<p align="center">
-  <img src="docs/images/web-console-desktop.jpg" width="760" alt="YarnBreak Jetson Console on desktop: camera cards, control dashboard and per-shift break count">
 </p>
 
 **Live view / ROI alignment** — the *Live view* button on each camera card opens the live stream with its ROI drawn on top, so a technician can aim the camera until the yarn falls inside the outline:
