@@ -49,11 +49,11 @@ Two more Hikrobot cameras watch the **comb**, where a broken yarn shows up as a 
   <img src="docs/images/comb_defect_examples.jpg" width="420" alt="Broken-yarn clusters at the comb"><br><sub>What the comb cameras look for</sub>
 </p>
 
-Live detections from the comb cameras on the production line. The top row shows real fluff balls being caught while an operator clears the comb; the rest are small clusters picked up early, before they grow.
+Live detections from the comb cameras on the production line. The top row shows what happens when a broken yarn is not caught in time: it snags on the comb and keeps growing into a large fluff ball that the operator has to clear by hand. The rest are small clusters picked up early, before they can grow.
 
 <table>
   <tr>
-    <td align="center"><img src="docs/images/comb_detection_8.jpg" width="420" alt="Comb camera detects a fluff ball while the operator clears it"><br><sub>Fluff ball at the comb — YB 0.90</sub></td>
+    <td align="center"><img src="docs/images/comb_detection_8.jpg" width="420" alt="Comb camera detects a fluff ball while the operator clears it"><br><sub>Broken yarn not caught in time snags on the comb and grows into a fluff ball like this — YB 0.90</sub></td>
     <td align="center"><img src="docs/images/comb_detection_9.jpg" width="420" alt="Comb camera detects a fluff ball while the operator clears it"><br><sub>Same cluster, operator clearing — YB 0.74</sub></td>
   </tr>
   <tr>
